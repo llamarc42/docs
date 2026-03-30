@@ -1,0 +1,60 @@
+version: 1
+
+global:
+  always_include:
+    - constitution.md
+    - principles.md
+    - glossary.md
+
+  max_tokens: 4000
+
+project:
+  include:
+    - project.md
+    - context.md
+    - constraints.md
+
+  folders:
+    architecture:
+      priority: high
+    decisions:
+      priority: high
+    domain:
+      priority: medium
+    quality:
+      priority: medium
+
+retrieval:
+  strategies:
+    planning:
+      include:
+        - architecture/**
+        - decisions/**
+        - constraints.md
+      max_files: 10
+
+    coding:
+      include:
+        - domain/**
+        - constraints.md
+      max_files: 8
+
+    review:
+      include:
+        - decisions/**
+        - constraints.md
+        - architecture/**
+      max_files: 12
+
+    general:
+      include:
+        - project.md
+        - context.md
+      max_files: 6
+
+chunking:
+  enabled: false
+
+history:
+  max_messages: 50
+  summarize_after: 30
