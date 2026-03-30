@@ -14,9 +14,9 @@ llamarc42 requires persistent, project-scoped conversations that:
 
 Sessions are stored locally within each project:
 
-'''powershell
+```powershell
 projects/.sessions/
-'''
+```
 
 Each session consists of:
 
