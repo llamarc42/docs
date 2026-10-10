@@ -1,7 +1,7 @@
 # ADR-005: Agent-Agnostic Documentation Framework Product Boundary
 
 ## Status
-Proposed
+Accepted
 
 ## Context
 
