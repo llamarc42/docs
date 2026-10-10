@@ -2,7 +2,7 @@
 
 Version: 0.1
 
-Status: Proposed
+Status: Accepted
 
 Authority: Normative upon acceptance
 
@@ -65,8 +65,8 @@ released file set does not by itself make it accepted.
 Acceptance requires explicit maintainer approval after the required scenarios
 have been verified and a reviewed change of this file's `Status` to `Accepted`.
 Until that event, `Authority: Normative upon acceptance` describes intended
-future authority only. This specification remains `Proposed` during DOC-02
-remediation and review.
+future authority only. Before that event, this specification remains
+`Proposed`.
 
 ## 3. Project model
 
