@@ -27,7 +27,7 @@ This contract defines:
 - project-root and document discovery;
 - required and optional documentation artifacts;
 - stable document identity and deterministic ordering;
-- documentation authority classes and conflict behavior;
+- structural document types, authority states, and conflict behavior;
 - ADR status and explicit historical relationships;
 - iteration-history conventions;
 - the role of a generic `AGENTS.md` entry point; and
@@ -54,6 +54,19 @@ declaration in `project.md`. A later contract version MUST be published as a
 separate versioned specification and MUST NOT silently redefine v0.1. Moving a
 project to another version requires an explicit change to its declaration and
 documentation.
+
+### 2.2 Specification acceptance
+
+The `Status` field at the top of this file controls whether this specification
+is in force. `Proposed` means the specification is under review and has no
+normative effect. Its presence in a branch, pull request, default branch, or
+released file set does not by itself make it accepted.
+
+Acceptance requires explicit maintainer approval after the required scenarios
+have been verified and a reviewed change of this file's `Status` to `Accepted`.
+Until that event, `Authority: Normative upon acceptance` describes intended
+future authority only. This specification remains `Proposed` during DOC-02
+remediation and review.
 
 ## 3. Project model
 
@@ -119,17 +132,40 @@ A document path MUST:
 - contain no `.` or `..` path segment in its normalized form; and
 - identify a regular, human-readable Markdown file with the `.md` extension.
 
-Directory links, junctions, or symbolic links that resolve outside the project
-root are outside the project and MUST NOT be followed during discovery.
+For v0.1, discovery MUST NOT traverse a child directory entry that the
+filesystem identifies as a symbolic link, junction, mount-point reparse point,
+or other directory reparse point. The link entry and everything reachable only
+through it are excluded from the inventory, even when the target is inside the
+project root. If the target is also reachable through a non-link path inside
+the root, its documents are inventoried only through that physical path. This
+rule prevents cycles, duplicate identities, and platform-specific traversal.
 
-Framework-defined paths and filenames are case-sensitive and MUST use the exact
-case specified here. A project MUST NOT contain document paths that differ only
-by case or Unicode normalization. This prevents a project from producing a
-different inventory on Windows, macOS, and Linux.
+A linked or reparse-point file is not a regular contract document and MUST also
+be excluded. The root marker `project.md` MUST itself be a non-link regular
+file.
 
-Portable project-specific names SHOULD use lowercase ASCII kebab-case. Spaces,
-trailing dots or spaces, platform-reserved names, and platform-specific path
-syntax SHOULD be avoided.
+Every contract document path MUST use a portable representation. A path segment
+MUST NOT:
+
+- contain ASCII control characters or any of `<`, `>`, `:`, `"`, `\`, `|`,
+  `?`, or `*`;
+- end in a space or `.`;
+- have a case-insensitive filename stem (the portion before the first `.`) of
+  `CON`, `PRN`, `AUX`, `NUL`, `COM1` through `COM9`, or `LPT1` through `LPT9`;
+  or
+- collide with another document path after Unicode NFC normalization and
+  Unicode default case-folding.
+
+Framework-defined paths and filenames are case-sensitive ASCII and MUST use the
+exact spelling shown in this contract. Variable framework-controlled names
+MUST also use their defined portable form: ADR slugs and iteration topic
+suffixes use lowercase ASCII kebab-case, years and dates use ASCII digits, and
+Markdown extensions use lowercase `.md` except for the exact navigation names
+`AGENTS.md` and `README.md`.
+
+Arbitrary project-specific document names MUST satisfy the portable
+prohibitions above. They SHOULD use lowercase ASCII kebab-case for consistency,
+but that style recommendation is not a conformance requirement.
 
 ### 4.2 Stable document identity
 
@@ -146,80 +182,90 @@ date is historical metadata, not architectural priority.
 
 ### 4.3 Deterministic inventory and ordering
 
-The project document inventory consists of Markdown files physically contained
-within the project root, excluding nested project subtrees and paths that
-resolve outside the root.
+The project document inventory consists of non-link regular Markdown files
+reached without traversing excluded entries and physically contained within the
+project root. Nested project subtrees are also excluded.
 
-Each document is assigned exactly one class using section 6. When a complete
-inventory is presented, documents MUST be grouped in this order:
+Each document is assigned exactly one structural document type using its path
+as defined in sections 5 and 6. Authority state is determined separately; an
+ADR remains a decision record whether it is Proposed, Accepted, Rejected,
+Withdrawn, or Superseded.
+
+When a complete inventory is presented, document types MUST be grouped in this
+order:
 
 1. project descriptor;
-2. current architectural decisions;
-3. current guidance;
-4. historical evidence;
+2. decision records;
+3. current-guidance documents;
+4. historical records;
 5. navigation;
 6. supplemental documentation.
 
-Within a class, documents MUST be ordered by normalized document identity using
+Within a type, documents MUST be ordered by normalized document identity using
 ordinal Unicode code-point order. ADRs MUST first be ordered by their numeric
 `ADR-NNN` identifier, with normalized path as the tie-breaker. Iteration records
 using the preferred convention naturally order by date and then by slug.
 
-Ordering is for predictable presentation. It does not create authority within
-a class and does not silently resolve conflicts.
+Every decision-record inventory entry MUST display its explicit status and
+derived authority state. Ordering is for predictable presentation only. It
+does not create authority, change authority state, or silently resolve
+conflicts.
 
 ## 5. Required and optional artifacts
 
-| Path or pattern | Requirement | Class | Purpose |
+| Path or pattern | Requirement | Document type | Authority determination |
 | --- | --- | --- | --- |
-| `project.md` | Required | Project descriptor | Marks the root and states version, purpose, scope, and reading path. |
-| `context.md` | Optional | Current guidance | Explains current problem context and non-goals. |
-| `constraints.md` | Optional | Current guidance | States current hard constraints. |
-| `architecture/**/*.md` | Optional | Current guidance | Describes current architecture and boundaries. |
-| `specifications/**/*.md` | Optional | Current guidance | Defines current project contracts. |
-| `domain/**/*.md` | Optional | Current guidance | Describes current domain language and invariants. |
-| `guides/**/*.md` | Optional | Current guidance | Provides current implementation or operating guidance. |
-| `quality/**/*.md` | Optional | Current guidance | Records current risks, tradeoffs, and delivery guidance. |
-| `decisions/ADR-NNN-*.md` | Optional | Architectural decision | Records a decision and its status. |
-| `history/**/*.md` | Optional | Historical evidence | Preserves investigations, findings, and iteration history. |
-| `AGENTS.md` | Optional | Navigation | Directs humans and unfamiliar agents to project documentation. |
-| `README.md` | Optional | Navigation | Provides a general human-oriented introduction or pointer. |
-| Other `*.md` files | Optional | Supplemental | Holds project-specific material with no framework-assigned authority. |
+| `project.md` | Required | Project descriptor | Current authority by type. |
+| `context.md` | Optional | Current guidance | Current authority by type. |
+| `constraints.md` | Optional | Current guidance | Current authority by type. |
+| `architecture/**/*.md` | Optional | Current guidance | Current authority by type. |
+| `specifications/**/*.md` | Optional | Current guidance | Current unless an explicit lifecycle status says otherwise. |
+| `domain/**/*.md` | Optional | Current guidance | Current authority by type. |
+| `guides/**/*.md` | Optional | Current guidance | Current authority by type. |
+| `quality/**/*.md` | Optional | Current guidance | Current authority by type. |
+| `decisions/ADR-NNN-*.md` | Optional | Decision record | Determined by explicit status and valid relationships. |
+| `history/**/*.md` | Optional | Historical record | Never current authority. |
+| `AGENTS.md` | Optional | Navigation | Never current authority. |
+| `README.md` | Optional | Navigation | Never current authority. |
+| Other `*.md` files | Optional | Supplemental | No framework-assigned authority. |
 
 Optional paths become part of the contract only when present. A project MUST
 NOT create an empty ADR, daily log, directory, or placeholder merely to appear
 complete.
 
-## 6. Documentation authority
+## 6. Document type and authority
 
-### 6.1 Authority classes
+### 6.1 Document types
+
+Document type is a structural classification determined by path. Authority
+state is a separate determination made from the type and, where defined, an
+explicit lifecycle status and structurally valid relationships. Changing an
+ADR status never changes its document type or its inventory group.
 
 #### Project descriptor
 
-`project.md` is current authoritative guidance for project identity, purpose,
-scope, and the documentation map. It is not an architectural decision record
-and cannot silently change an accepted ADR.
+`project.md` is the project-descriptor type. It describes project identity,
+purpose, scope, and the documentation map. It is not a decision record and
+cannot silently change an accepted ADR.
 
-#### Current architectural decisions
+#### Decision records
 
-An ADR with status `Accepted` is current authority for the decision it records,
-unless it has been explicitly superseded as defined in section 7.
+Every conforming file under `decisions/` is a decision record. Its status does
+not move it to the historical-record type. Proposed, Rejected, Withdrawn, and
+Superseded ADRs remain visibly grouped and ordered with all other decision
+records.
 
-ADRs with any other status are retained decision history and are not current
-authority.
-
-#### Current guidance
+#### Current-guidance documents
 
 Current-guidance documents describe the project's present architecture,
 constraints, domain rules, practices, risks, and implementation or operating
-guidance. Their authority comes from their contract-defined location, not from
-an agent, retrieval result, file modification time, or search ranking.
+guidance.
 
-#### Historical evidence
+#### Historical records
 
 Files under `history/`, including iteration records, preserve what was explored,
 observed, proposed, or concluded at a point in time. They are evidence for why
-the project evolved; they are not current architectural authority.
+the project evolved.
 
 #### Navigation
 
@@ -230,11 +276,28 @@ normative content.
 #### Supplemental documentation
 
 Markdown files outside contract-defined locations remain discoverable, but the
-framework assigns them no authority. A project that needs a supplemental file
-to be current authority SHOULD move it into the appropriate current-guidance
-location or record the governing decision in an accepted ADR.
+framework classifies them as supplemental.
 
-### 6.2 Precedence and conflicts
+### 6.2 Authority state
+
+The project descriptor and current-guidance documents are current authority by
+type. A document with an explicit lifecycle status recognized by its governing
+specification is current only when that status says it is accepted. Therefore,
+this documentation-contract file remains non-authoritative while its own status
+is `Proposed` under section 2.2.
+
+A decision record is current authority only when its explicit status is
+`Accepted`. Relationship effects apply only when the structural rules in
+section 7.3 are complete and valid. Proposed, Rejected, Withdrawn, and
+Superseded decision records are non-current decision history; they remain
+decision records in the inventory.
+
+Historical records, navigation documents, and supplemental documents are not
+current authority. A project that needs supplemental material to become
+current authority SHOULD move it to the appropriate current-guidance location
+or record the governing decision in an accepted ADR.
+
+### 6.3 Precedence and conflicts
 
 Current authority consists of the project descriptor, accepted and
 non-superseded ADRs, and current-guidance documents.
@@ -274,6 +337,8 @@ An ADR filename MUST match `decisions/ADR-NNN-<slug>.md`. It MUST contain:
 - the decision or proposed decision; and
 - consequences.
 
+`<slug>` MUST match `[a-z0-9]+(?:-[a-z0-9]+)*`.
+
 Rationale and explicit relationship sections are optional unless required by a
 status transition.
 
@@ -290,6 +355,12 @@ status transition.
 Status is explicit. It MUST NOT be inferred from ADR number, filename, file
 date, commit history, issue state, or the existence of a newer ADR.
 
+`Proposed` may transition to `Accepted`, `Rejected`, or `Withdrawn` only through
+explicit review. `Rejected`, `Withdrawn`, and `Superseded` are terminal for that
+decision record. Reconsidering or re-adopting their content requires a new ADR;
+historical decisions MUST NOT become current automatically because a later ADR
+is removed, rejected, withdrawn, or superseded.
+
 ### 7.3 Relationships and supersession
 
 Decision relationships use relative Markdown links that resolve to decision
@@ -298,24 +369,54 @@ documents within the same project in these optional sections:
 - `## Supersedes` identifies decisions wholly replaced by this ADR.
 - `## Amends` identifies accepted decisions changed only in a stated, limited
   respect.
+- `## Amended by` identifies accepted ADRs that amend this ADR.
+- `## Amendment scope` states the limited scope changed by an amendment.
 - `## Related decisions` records context without changing authority.
 - `## Superseded by` identifies the accepted successor to a superseded ADR.
 
-Supersession MUST be explicit and reciprocal:
+Only an `Accepted` ADR can establish a new supersession or amendment. A
+non-Accepted ADR MAY describe an intended relationship for review, but that
+relationship has no authority effect.
+
+Supersession MUST be explicit and reciprocal when established:
 
 1. The successor ADR MUST have status `Accepted` and link to each predecessor
    under `## Supersedes`.
-2. Each predecessor MUST have status `Superseded` and link to the successor
-   under `## Superseded by`.
+2. Each predecessor MUST have status `Superseded`, which records that it was
+   formerly Accepted, and link to the successor under `## Superseded by`.
 3. The predecessor file and its rationale MUST be retained.
 
-An amendment MUST state the exact scope changed. Both ADRs remain current for
-their non-conflicting scopes. If that scope cannot be stated clearly, the newer
-ADR SHOULD supersede the older one instead.
+When an accepted successor is later superseded, it retains its earlier
+`## Supersedes` links and adds its own `## Superseded by` link. Earlier records
+continue to point to their immediate successors. A multi-generation chain MUST
+remain complete and MUST NOT be collapsed to point every historical ADR at the
+newest decision. Only the final Accepted ADR is current; every Superseded ADR
+in the chain remains non-current.
+
+For structural evaluation, a Superseded ADR MAY retain outgoing `## Supersedes`
+links established while it was Accepted. Those links preserve history but do
+not give the Superseded ADR current authority or permit it to establish new
+relationships.
+
+An amendment takes effect only when the amending ADR and its target both have
+status `Accepted`. The amending ADR MUST link to the target under `## Amends`,
+the target MUST link back under `## Amended by`, and the amending ADR MUST state
+the exact scope changed in a non-empty `## Amendment scope` section. Both ADRs
+remain current: the amendment governs only that explicit scope and the target
+remains current elsewhere. If the scope cannot be stated clearly, the newer ADR
+SHOULD supersede the older one instead.
 
 Decision relationships MUST NOT be inferred from prose similarity. A missing,
 one-sided, or contradictory relationship is an unresolved documentation issue,
-not permission to guess.
+not permission to guess. It MUST be reported as a conformance failure. An
+invalid relationship has no authority effect: tools MUST NOT infer a missing
+status transition, reciprocal link, amendment, successor, or predecessor.
+
+These checks are structural. They require only paths, explicit status values,
+required non-empty sections, and reciprocal links. Tools verify the presence of
+amendment scope, while humans review whether it is sufficiently exact. The
+structural checks do not require semantic conflict detection or interpretation
+of decision prose.
 
 ## 8. Iteration history
 
@@ -332,7 +433,8 @@ history/
 ```
 
 Use `YYYY-MM-DD.md` when one record covers the day. Use a lowercase kebab-case
-topic suffix when multiple records or clearer topic separation are useful.
+topic suffix matching `[a-z0-9]+(?:-[a-z0-9]+)*` when multiple records or
+clearer topic separation are useful.
 
 The date is the local working date of the record. A project MUST NOT require a
 record for every calendar day. Missing dates are normal. Empty or fabricated
@@ -419,6 +521,8 @@ weather-station/
 **Result:** Conforms when `project.md` contains the required purpose and
 `Documentation contract: llamarc42/v0.1` declaration.
 
+**Inventory:** One project-descriptor document.
+
 **Authority:** `project.md` is the only current authority. There are no ADRs and
 no historical documents.
 
@@ -439,6 +543,9 @@ inventory-service/
 ```
 
 **Result:** Conforms. ADRs are optional.
+
+**Inventory:** One project descriptor and three current-guidance documents,
+grouped and ordered by sections 4.3 and 5.
 
 **Authority:** All four files are current authority in their defined roles.
 There is no decision history or iteration history.
@@ -464,6 +571,9 @@ desktop-client/
 
 **Result:** Conforms. Two useful dates are recorded; no file is required for
 other dates.
+
+**Inventory:** One project descriptor, one current-guidance document, two
+historical records, and one navigation document.
 
 **Authority:** `project.md` and `architecture/overview.md` are current
 authority. Both iteration files are historical evidence. `AGENTS.md` is
@@ -493,6 +603,9 @@ experiment.
 **Result:** Conforms. A historical disagreement is allowed and preserves useful
 reasoning.
 
+**Inventory:** One project descriptor, one Accepted decision record, and one
+historical record. The ADR remains in the decision-record group.
+
 **Authority:** The accepted ADR is current decision authority. The remote
 storage recommendation is historical evidence and does not override it.
 
@@ -502,17 +615,174 @@ iteration record as history. If the project adopts remote storage, it must do
 so through an explicit new or amended accepted ADR; editing or reordering the
 historical record is insufficient.
 
+### 11.5 Rejected ADR alongside an accepted ADR
+
+```text
+telemetry/
+├── project.md
+└── decisions/
+    ├── ADR-001-local-events.md       # Accepted
+    └── ADR-002-hosted-events.md      # Rejected
+```
+
+**Result:** Conforms when both ADRs have valid form and no invalid relationship.
+
+**Inventory:** Both files are decision records and are ordered by identifier.
+Each entry displays its distinct status and authority state.
+
+**Authority:** ADR-001 is current authority. ADR-002 is non-current decision
+history. Rejection does not change ADR-002's document type or remove it from the
+decision-record inventory group.
+
+**Discovery:** Path classification identifies both records; exact status values
+determine authority without interpreting their prose.
+
+### 11.6 Accepted ADR amended by another accepted ADR
+
+```text
+payments/
+├── project.md
+└── decisions/
+    ├── ADR-001-payment-timeouts.md   # Accepted; Amended by ADR-002
+    └── ADR-002-mobile-timeout.md     # Accepted; Amends ADR-001
+```
+
+Assume ADR-002 states the exact timeout scope it changes and both links are
+reciprocal.
+
+**Result:** Conforms.
+
+**Inventory:** Both files are Accepted decision records ordered by identifier.
+
+**Authority:** Both ADRs are current. ADR-002 governs only its explicit amended
+scope; ADR-001 remains current elsewhere. A non-Accepted ADR-002 would have no
+amendment effect.
+
+**Discovery:** Status values, relationship headings, links, and the explicit
+scope statement are directly inspectable. No semantic comparison is required.
+
+### 11.7 Three-generation supersession chain
+
+```text
+storage/
+├── project.md
+└── decisions/
+    ├── ADR-001-files.md              # Superseded by ADR-002
+    ├── ADR-002-sqlite.md             # Supersedes ADR-001; Superseded by ADR-003
+    └── ADR-003-postgres.md           # Accepted; Supersedes ADR-002
+```
+
+**Result:** Conforms when every adjacent relationship is reciprocal and the
+former rationale remains in each record.
+
+**Inventory:** All three files remain decision records ordered by identifier.
+The inventory shows ADR-001 and ADR-002 as Superseded and ADR-003 as Accepted.
+
+**Authority:** Only ADR-003 is current. ADR-001 and ADR-002 remain non-current
+decision history. ADR-001 continues to point to ADR-002, and ADR-002 retains
+its link to ADR-001 while also pointing to ADR-003; the chain is not collapsed.
+
+**Discovery:** The complete chain is reconstructed from explicit adjacent links
+and statuses. No date, file order, or prose inference is used.
+
+### 11.8 Invalid one-sided supersession
+
+```text
+cache/
+├── project.md
+└── decisions/
+    ├── ADR-001-memory-cache.md        # Accepted; no Superseded by link
+    └── ADR-002-disk-cache.md          # Accepted; Supersedes ADR-001
+```
+
+**Result:** Does not conform. The relationship is one-sided and MUST be
+reported. A tool must not repair or complete it implicitly.
+
+**Inventory:** Both files remain Accepted decision records in deterministic
+identifier order. The invalid relationship is reported alongside them.
+
+**Authority:** The attempted supersession has no effect. ADR-001 remains
+Accepted because its status was not explicitly and validly changed; ADR-002 is
+also Accepted for its own recorded decision. Any resulting current-authority
+conflict remains visible until the documents are corrected.
+
+**Discovery:** The failure is found by comparing explicit statuses and links,
+not by interpreting whether the two decisions conflict semantically.
+
+### 11.9 Directory symlink or junction inside the project
+
+```text
+desktop/
+├── project.md
+└── architecture/
+    ├── shared/
+    │   └── overview.md
+    └── shared-alias -> shared/        # Directory link or junction
+```
+
+**Result:** Conforms if the physical documents otherwise conform. Directory
+links may exist, but v0.1 never traverses them. A linked `project.md` would not
+identify a valid root because the root marker must be a non-link regular file.
+
+**Inventory:** `architecture/shared/overview.md` is included once through its
+non-link path. `shared-alias` and its apparent subtree are excluded.
+
+**Authority:** The physical `overview.md` is current guidance. The link creates
+no second document identity or authority entry.
+
+**Discovery:** Filesystem link metadata alone determines non-traversal, avoiding
+cycles and duplicate enumeration without examining content.
+
+### 11.10 Portability-sensitive filenames and case differences
+
+```text
+portable-app/
+├── project.md
+└── guides/
+    ├── CON.md
+    ├── API.md
+    └── api.md
+```
+
+**Result:** Does not conform. `CON.md` uses a platform-reserved basename, and
+the other two paths collide after case-folding.
+
+**Inventory:** On a filesystem that can represent all three entries, discovery
+records all source paths as current-guidance documents and reports the reserved
+name and collision. It MUST NOT merge the case variants or choose one. On a
+filesystem that cannot represent the tree, the project cannot claim portable
+v0.1 conformance.
+
+**Authority:** `project.md` remains current authority. The invalid guide paths
+cannot form a deterministic portable authority inventory until renamed; a
+consumer reports them rather than inventing precedence.
+
+**Discovery:** Character checks, reserved-basename checks, NFC normalization,
+and case-folding are sufficient. No AI or semantic interpretation is involved.
+
+### 11.11 Deterministic implementation check
+
+All ten scenarios can be evaluated using filesystem entry type, normalized
+relative paths, filename patterns, exact status values, and explicit Markdown
+relationship links. Content-quality review and semantic conflict detection are
+outside the algorithm. A conforming implementation therefore needs no AI,
+embedding, database, network service, or hidden state.
+
 ## 12. Conformance summary
 
 A project conforms to v0.1 when:
 
 - it has a discoverable `project.md` satisfying section 3;
 - its contract documents remain inside the project root and obey section 4;
-- every present document has the class assigned by its path;
-- ADRs, when present, follow section 7;
+- every present document has the structural type assigned by its path;
+- authority state is derived separately from type and explicit lifecycle state;
+- ADRs, when present, have a valid status and follow the structural relationship
+  rules in section 7;
+- directory links and linked files are excluded without traversal;
+- document paths satisfy the portable requirements in section 4.1;
 - historical records never claim current authority;
 - optional entry points never control discovery or meaning; and
-- extensions preserve the standard authority classes.
+- extensions preserve the standard document types and authority rules.
 
 Conformance does not imply that the documentation is complete, correct, or
 free of semantic conflict. The contract makes structure and declared authority
