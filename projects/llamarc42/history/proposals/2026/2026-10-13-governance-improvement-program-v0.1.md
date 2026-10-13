@@ -4,15 +4,15 @@ Version: 0.1
 
 Status: Proposed
 
-Authority: None until explicitly reviewed and accepted through the established
-documentation and ADR process.
+Authority: None. Its `history/` path classifies it as a historical record under
+Documentation Contract v0.1. `Status: Proposed` is descriptive metadata only.
 
 ## 1. Purpose and scope
 
 This proposal records the evidence, candidate requirements, and backlog mapping
 for a four-milestone llamarc42 improvement program. It is a review artifact, not
 an accepted architecture decision or an amendment to the accepted
-[`documentation-contract-v0.1.md`](documentation-contract-v0.1.md).
+[`documentation-contract-v0.1.md`](../../../specifications/documentation-contract-v0.1.md).
 
 Milestone 1 is documentation and planning only. This proposal does not authorize
 implementation of CLI commands, registries, validators, retrieval, sessions,
@@ -22,10 +22,10 @@ agent behavior, external workflows, or llamarc42.con integration.
 
 The following accepted documents govern this proposal:
 
-- [`documentation-contract-v0.1.md`](documentation-contract-v0.1.md), accepted
+- [`documentation-contract-v0.1.md`](../../../specifications/documentation-contract-v0.1.md), accepted
   through [DOC-02](https://github.com/llamarc42/docs/issues/8) and
   [PR #16](https://github.com/llamarc42/docs/pull/16);
-- [`ADR-005-agent-agnostic-documentation-framework-boundary.md`](../decisions/ADR-005-agent-agnostic-documentation-framework-boundary.md),
+- [`ADR-005-agent-agnostic-documentation-framework-boundary.md`](../../../decisions/ADR-005-agent-agnostic-documentation-framework-boundary.md),
   accepted through [DOC-01](https://github.com/llamarc42/docs/issues/7); and
 - the still-current, known-conflicting documents and ADR-001 through ADR-004,
   whose explicit reconciliation remains assigned to
@@ -63,9 +63,10 @@ The following supplied historical facts were verified:
 - DOC-02 is closed as completed.
 - Documentation Contract v0.1 is on `main` with `Status: Accepted`.
 - PR #16 is merged.
-- The public Llamarc42 Board shows DOC-01 and DOC-02 as Done in sprint `26_21`.
-- The board's current sprint view is still filtered to `26_21`; it contains no
-  open items. This proposal does not change that commitment.
+- At the discovery baseline, the public Llamarc42 Board showed DOC-01 and DOC-02
+  as Done in sprint `26_21`, with no open sprint items.
+- After the Milestone 1 handoff, DOC-06 was explicitly assigned to sprint
+  `26_21` and moved to In Progress.
 
 ### 3.3 Current backlog and milestones
 
@@ -118,7 +119,7 @@ does not perform that work or select a side document-by-document.
 
 The BAT Spec Kit evidence is preserved as the non-authoritative historical
 record
-[`../history/experiments/2026/2026-10-13-bat-spec-kit.md`](../history/experiments/2026/2026-10-13-bat-spec-kit.md).
+[`../../experiments/2026/2026-10-13-bat-spec-kit.md`](../../experiments/2026/2026-10-13-bat-spec-kit.md).
 
 Reusable conclusions are limited to governance behavior: explicit authority,
 human clarification gates, evidence maturity, deterministic repository
@@ -303,8 +304,8 @@ Deliver this proposal, the experiment record, validation evidence, and a review
 handoff. M1 maps to the existing Documentation Framework Definition milestone
 and informs DOC-03 through DOC-05. It is tracked by
 [DOC-06](https://github.com/llamarc42/docs/issues/17) and submitted for review
-in draft [PR #18](https://github.com/llamarc42/docs/pull/18). DOC-06 has no
-sprint assignment.
+in [PR #18](https://github.com/llamarc42/docs/pull/18), which is ready for
+review. DOC-06 is In Progress in sprint `26_21`.
 
 Exit requires review of this proposal, not architectural acceptance. M1 does
 not close DOC-03, DOC-04, or DOC-05.
@@ -350,15 +351,16 @@ scope, and llamarc42.con remains independent under ADR-005.
   governing ADR is accepted.
 - Agent compatibility and external workflow evaluation are intentionally later
   than deterministic project membership and validation.
-- Existing milestone and sprint assignments remain unchanged.
+- DOC-06 is assigned to sprint `26_21`; this proposal does not alter other issue
+  ownership, milestone, or sprint assignments.
 
 ## 10. Actionable follow-up work
 
 The minimum follow-up set is:
 
-1. Review DOC-06 and draft PR #18, and decide whether to authorize a proposed
-   ADR for the multi-repository project model. Do not assign DOC-06 to a sprint
-   or treat the proposal as accepted architecture.
+1. Review DOC-06 and PR #18, and decide whether to authorize a proposed ADR for
+   the multi-repository project model. Do not treat the proposal as accepted
+   architecture.
 2. If authorized, draft the ADR and separately versioned contract amendment;
    do not edit v0.1 in place.
 3. Refine DOC-03, DOC-04, and CLI-01 acceptance criteria after that decision;
@@ -404,10 +406,11 @@ before commit.
 
 ### GitHub handoff
 
-DOC-06 is open in the Documentation Framework Definition milestone with no
-sprint assignment. Draft PR #18 targets `main`, links DOC-06, and contains the
-Milestone 1 documentation changes and verification evidence. Neither artifact
-is closed, merged, or evidence that this proposal has been accepted.
+DOC-06 is open and In Progress in sprint `26_21` under the Documentation
+Framework Definition milestone. PR #18 is ready for review, targets `main`,
+links DOC-06, and contains the Milestone 1 documentation changes and
+verification evidence. Neither artifact is closed, merged, or evidence that
+this proposal has been accepted.
 
 ## 12. Open architectural questions
 

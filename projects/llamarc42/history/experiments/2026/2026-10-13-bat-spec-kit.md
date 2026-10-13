@@ -164,4 +164,4 @@ governance refinements:
   requirement they corrected.
 
 These lessons are assessed against current llamarc42 authority in
-[`../../../specifications/governance-improvement-program-v0.1.md`](../../../specifications/governance-improvement-program-v0.1.md).
+[`../../proposals/2026/2026-10-13-governance-improvement-program-v0.1.md`](../../proposals/2026/2026-10-13-governance-improvement-program-v0.1.md).
