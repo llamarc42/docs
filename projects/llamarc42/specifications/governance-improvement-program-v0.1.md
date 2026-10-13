@@ -74,7 +74,7 @@ The docs repository has three GitHub milestones:
 | GitHub milestone | State | Relevant work |
 | --- | --- | --- |
 | Docs Foundation | Closed | Original repository, documents, ADRs, and quality set. |
-| [Documentation Framework Definition](https://github.com/llamarc42/docs/milestone/2) | Open | DOC-01 through DOC-05; DOC-03, DOC-04, and DOC-05 remain open. |
+| [Documentation Framework Definition](https://github.com/llamarc42/docs/milestone/2) | Open | DOC-01 through DOC-06; DOC-03 through DOC-06 remain open. |
 | [Framework Validation and Adoption](https://github.com/llamarc42/docs/milestone/3) | Open | VAL-01 through VAL-03, all open. |
 
 Open framework issues already define substantial future work:
@@ -85,6 +85,8 @@ Open framework issues already define substantial future work:
   validation and diagnostics;
 - [DOC-05](https://github.com/llamarc42/docs/issues/11): accepted-document,
   ADR, repository-role, and roadmap reconciliation;
+- [DOC-06](https://github.com/llamarc42/docs/issues/17): governance
+  experiment findings and multi-repository requirements;
 - [VAL-01](https://github.com/llamarc42/docs/issues/12): normative fixtures;
 - [VAL-02](https://github.com/llamarc42/docs/issues/13): dogfooding; and
 - [VAL-03](https://github.com/llamarc42/docs/issues/14): adoption and manual
@@ -108,9 +110,9 @@ the constitution, principles, project description, constraints, architecture,
 invariants, quality documents, and ADR-001 through ADR-004 still contain
 copilot, model, retrieval, session, and surface requirements. ADR-005 and the
 documentation contract require that conflict to remain visible. DOC-05 owns its
-resolution. That reconciliation must be considered before the proposed
+reconciliation, and its findings must be considered before the proposed
 multi-repository governance contract can be accepted during M2. This proposal
-does not perform the reconciliation or select a side document-by-document.
+does not perform that work or select a side document-by-document.
 
 ## 4. External experiment evidence
 
@@ -309,12 +311,13 @@ not close DOC-03, DOC-04, or DOC-05.
 
 ### M2 — Initialization and Validation
 
-First accept the multi-repository project-model ADR and a separately versioned
-documentation-contract amendment, with the DOC-05 reconciliation outcome
-considered before either multi-repository governance artifact is accepted. Then
-refine DOC-03 and DOC-04, update CLI-01, and implement through CORE-01 through
-CORE-04 and CLI-02 through CLI-05. VAL-01 provides fixtures; VAL-02 and VAL-03
-remain later validation/adoption work.
+M2 requires an accepted multi-repository project-model ADR and a separately
+versioned documentation-contract amendment. DOC-05 reconciliation findings
+must be considered before accepting the proposed multi-repository contract.
+Only after those governance prerequisites are satisfied may M2 refine DOC-03
+and DOC-04, update CLI-01, and implement through CORE-01 through CORE-04 and
+CLI-02 through CLI-05. VAL-01 provides fixtures; VAL-02 and VAL-03 remain later
+validation/adoption work.
 
 M2 may include standalone init, multi-root and multi-child init, explicit
 membership, portable identity/source metadata, deterministic validation, and
@@ -353,16 +356,15 @@ scope, and llamarc42.con remains independent under ADR-005.
 
 The minimum follow-up set is:
 
-1. Review DOC-06 and draft PR #18 without assigning the issue to a sprint or
-   treating the proposal as accepted architecture.
-2. Review this proposal and decide whether to authorize a proposed ADR for the
-   multi-repository project model.
-3. If authorized, draft the ADR and separately versioned contract amendment;
+1. Review DOC-06 and draft PR #18, and decide whether to authorize a proposed
+   ADR for the multi-repository project model. Do not assign DOC-06 to a sprint
+   or treat the proposal as accepted architecture.
+2. If authorized, draft the ADR and separately versioned contract amendment;
    do not edit v0.1 in place.
-4. Refine DOC-03, DOC-04, and CLI-01 acceptance criteria after that decision;
+3. Refine DOC-03, DOC-04, and CLI-01 acceptance criteria after that decision;
    preserve their current standalone commitments.
-5. Add multi-repository fixtures to VAL-01 only after the contract is accepted.
-6. Create M3 and M4 issues when their upstream contracts are stable rather than
+4. Add multi-repository fixtures to VAL-01 only after the contract is accepted.
+5. Create M3 and M4 issues when their upstream contracts are stable rather than
    pre-assigning speculative implementation.
 
 ## 11. Milestone 1 verification and handoff
