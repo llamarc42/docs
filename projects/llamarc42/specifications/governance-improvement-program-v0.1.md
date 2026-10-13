@@ -108,7 +108,9 @@ the constitution, principles, project description, constraints, architecture,
 invariants, quality documents, and ADR-001 through ADR-004 still contain
 copilot, model, retrieval, session, and surface requirements. ADR-005 and the
 documentation contract require that conflict to remain visible. DOC-05 owns its
-resolution. This proposal does not select a side document-by-document.
+resolution. That reconciliation must be considered before the proposed
+multi-repository governance contract can be accepted during M2. This proposal
+does not perform the reconciliation or select a side document-by-document.
 
 ## 4. External experiment evidence
 
@@ -297,9 +299,10 @@ These program labels do not replace GitHub milestones.
 
 Deliver this proposal, the experiment record, validation evidence, and a review
 handoff. M1 maps to the existing Documentation Framework Definition milestone
-and informs DOC-03 through DOC-05. A dedicated GitHub work item is still needed;
-creation was attempted but the available GitHub integration lacked write
-permission. No sprint assignment is proposed.
+and informs DOC-03 through DOC-05. It is tracked by
+[DOC-06](https://github.com/llamarc42/docs/issues/17) and submitted for review
+in draft [PR #18](https://github.com/llamarc42/docs/pull/18). DOC-06 has no
+sprint assignment.
 
 Exit requires review of this proposal, not architectural acceptance. M1 does
 not close DOC-03, DOC-04, or DOC-05.
@@ -307,9 +310,11 @@ not close DOC-03, DOC-04, or DOC-05.
 ### M2 — Initialization and Validation
 
 First accept the multi-repository project-model ADR and a separately versioned
-documentation-contract amendment. Then refine DOC-03 and DOC-04, update CLI-01,
-and implement through CORE-01 through CORE-04 and CLI-02 through CLI-05. VAL-01
-provides fixtures; VAL-02 and VAL-03 remain later validation/adoption work.
+documentation-contract amendment, with the DOC-05 reconciliation outcome
+considered before either multi-repository governance artifact is accepted. Then
+refine DOC-03 and DOC-04, update CLI-01, and implement through CORE-01 through
+CORE-04 and CLI-02 through CLI-05. VAL-01 provides fixtures; VAL-02 and VAL-03
+remain later validation/adoption work.
 
 M2 may include standalone init, multi-root and multi-child init, explicit
 membership, portable identity/source metadata, deterministic validation, and
@@ -348,9 +353,8 @@ scope, and llamarc42.con remains independent under ADR-005.
 
 The minimum follow-up set is:
 
-1. Create the blocked M1 documentation issue in the Documentation Framework
-   Definition milestone and link the review PR; do not assign it to a sprint
-   without an explicit planning decision.
+1. Review DOC-06 and draft PR #18 without assigning the issue to a sprint or
+   treating the proposal as accepted architecture.
 2. Review this proposal and decide whether to authorize a proposed ADR for the
    multi-repository project model.
 3. If authorized, draft the ADR and separately versioned contract amendment;
@@ -396,13 +400,12 @@ labeling, naming, placement, and scope were therefore verified with bounded
 manual and scripted checks. Git staged-diff and whitespace checks are repeated
 before commit.
 
-### GitHub blocker
+### GitHub handoff
 
-The repository and issue state were readable, but the connected GitHub
-integration returned `403 Resource not accessible by integration` when creating
-the dedicated work item, and the local GitHub CLI credential was invalid. Until
-write access is restored, the issue and draft pull request remain operational
-handoff steps rather than completed GitHub artifacts.
+DOC-06 is open in the Documentation Framework Definition milestone with no
+sprint assignment. Draft PR #18 targets `main`, links DOC-06, and contains the
+Milestone 1 documentation changes and verification evidence. Neither artifact
+is closed, merged, or evidence that this proposal has been accepted.
 
 ## 12. Open architectural questions
 
