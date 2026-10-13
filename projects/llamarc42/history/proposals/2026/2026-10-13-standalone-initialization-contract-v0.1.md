@@ -109,8 +109,13 @@ target is invalid. Initialization MUST NOT create the target directory because
 doing so would require mutation in its parent and make the requested boundary
 ambiguous. The user must create the directory explicitly and retry.
 
-Current-directory and explicit-directory selection of the same physical target
-MUST produce equivalent plans and results.
+Implicit and explicit selection MUST use the same normalization, ancestry
+inspection, and classification rules. When they produce the same normalized
+absolute component chain, they MUST produce equivalent plans and results.
+Different lexical paths that reach the same physical directory through a link
+or reparse-point alias are intentionally not equivalent inputs: the aliased
+path is invalid under section 4.3. Initialization does not resolve aliases or
+provide a generalized physical-filesystem identity service.
 
 ### 4.2 Root and containment rules
 
@@ -123,26 +128,48 @@ Every planned artifact path MUST:
 
 Initialization MUST NOT recursively scan siblings, parents, or arbitrary
 descendants. It MAY inspect only the selected target, the two approved artifact
-paths, and ancestor information needed to detect an existing enclosing project.
+paths, and ancestor metadata needed to reject links and detect an existing
+enclosing project. Ancestor inspection is read-only and MUST NOT enumerate or
+read unrelated ancestor contents.
 
 If the target has no `project.md` but root discovery finds a project in an
 ancestor directory, initialization MUST report an invalid target rather than
 silently create a nested project. Documentation Contract v0.1 permits explicit
 nested projects, but this command has no explicit nested-project authorization.
 
-### 4.3 Links and special entries
+### 4.3 Target ancestry, links, and special entries
 
-The selected target MUST NOT itself be a symbolic link, junction, mount-point
-reparse point, or other directory reparse point. An approved artifact path is
-invalid when an existing entry at that path is:
+Before project discovery or artifact inspection, initialization MUST inspect
+the selected absolute path component by component, beginning with its
+filesystem root and ending with the target. Each component entry MUST be
+examined with no-follow metadata operations. On Windows, a symbolic link,
+junction, mount-point reparse point, or any other reparse-point component is
+invalid. On other platforms, a symbolic link or equivalent link-like component
+is invalid.
+
+If a component is linked, reparse, unavailable, or cannot be inspected without
+following a link, the target is invalid and both approved artifacts are
+`Invalid`. The diagnostic MUST identify the normalized selected target, the
+first offending component that can be reported safely, and the detected entry
+type or access failure. It MUST instruct the user to select a direct,
+inspectable, non-link path and create a new plan.
+
+This rule applies identically whether the selected path came from the process
+current directory or an explicit argument. It is an initialization safety rule;
+it does not change Documentation Contract v0.1 inventory behavior after a valid
+root has been selected.
+
+An approved artifact path is invalid when an existing entry at that path is:
 
 - a symbolic link or file reparse point;
 - a directory;
 - a device, socket, pipe, or other special filesystem entry; or
 - anything other than a non-link regular file.
 
-Initialization MUST NOT follow a link to decide that an artifact is safe or
-compatible.
+Initialization MUST NOT follow or resolve a link to decide that a target,
+ancestor, or artifact is safe or compatible. It MUST NOT use canonicalization
+through links, recursively traverse ancestors, read link targets, or perform
+any write, create, delete, or probe outside the selected target.
 
 ## 5. Approved standalone template set
 
@@ -258,9 +285,10 @@ from an observed creation; no separate `create` classification is introduced.
 initialization will preserve it byte-for-byte.
 
 For `project.md`, an existing file is initialization-compatible only when it
-contains exactly one declaration selecting `llamarc42/v0.1`. Initialization
-does not judge whether its name, purpose, links, or prose are substantively
-complete; that belongs to validation and human review.
+contains exactly one declaration selecting `llamarc42/v0.1` under the narrow
+recognition rule in section 7.1. Initialization does not judge whether its name,
+purpose, links, or prose are substantively complete; that belongs to validation
+and human review.
 
 For `AGENTS.md`, any non-link regular file is initialization-compatible and is
 preserved. `Existing` is not a claim that the file conforms to every navigation
@@ -273,6 +301,8 @@ artifact and reports why. Required uses include:
 
 - an otherwise creatable artifact blocked because another artifact made the
   complete plan invalid; and
+- an absent artifact whose recorded plan was refused after re-preflight found
+  stale target state or a template- or contract-identity mismatch; and
 - a not-yet-attempted artifact after an unexpected application failure.
 
 `Skipped` MUST NOT conceal a conflict or be used as an overwrite substitute.
@@ -308,7 +338,7 @@ The operation has one aggregate outcome:
 | --- | --- |
 | Applied | Preflight was valid and every planned creation completed. At least one artifact is `Created`. |
 | No change | Preflight was valid, every artifact is `Existing`, and no write occurred. |
-| Invalid | Preflight found one or more `Invalid` conditions; no planned write occurred. |
+| Invalid | Initial preflight found an invalid condition, or re-preflight found that the recorded plan was stale or inapplicable; no planned write occurred. A plan-level mismatch can produce this aggregate even when current artifact classifications are only `Existing` and `Skipped`. |
 | Error | Preflight succeeded, but an unexpected failure interrupted application. Completed and unattempted artifacts are reported honestly. |
 
 `Applied` and `No change` are successful initialization outcomes. They do not
@@ -319,6 +349,15 @@ output remain deferred to CLI-01.
 
 Before any planned write, initialization MUST inspect both approved paths and
 produce the complete ordered plan.
+
+The plan MUST retain enough comparison evidence to detect material change at
+re-preflight: the normalized target, the link/reparse/access classification of
+its component chain, the template identity, the contract version, and each
+artifact's presence, entry kind, classification, and bytes when it is an
+existing regular file. Core owns the internal comparison representation; the
+contract does not require exposing file contents or selecting a particular hash
+algorithm. Timestamp-only or other metadata-only changes are not material
+unless they change access, entry type, link status, or safe application.
 
 If any artifact or target condition is `Invalid`:
 
@@ -338,6 +377,73 @@ Existing compatible files MUST be preserved byte-for-byte even when they differ
 from the current template. Template version changes do not authorize rewrite,
 normalization, migration, or added metadata.
 
+### 7.1 Initialization-compatible contract declaration
+
+Documentation Contract v0.1 defines the declaration text exactly as:
+
+```text
+Documentation contract: llamarc42/v0.1
+```
+
+DOC-03 reuses that syntax and defines only the narrow recognition needed to
+decide whether an existing `project.md` can be preserved during initialization.
+It does not introduce another declaration form.
+
+Initialization examines the decoded Markdown source as logical lines, treating
+LF and CRLF line endings equivalently. A file that cannot be read as Markdown
+text is `Invalid`. On each top-level source line outside the excluded Markdown
+contexts below, initialization removes zero through three leading ASCII spaces,
+finds the first colon, removes ASCII spaces and tabs immediately before that
+colon, and compares the preceding field name to `Documentation contract` using
+ordinal case-insensitive comparison. A match is one candidate declaration.
+Lines without that field-name match are not candidates.
+
+An accepted candidate MUST match this grammar:
+
+```text
+^[ ]{0,3}Documentation contract: llamarc42/v0\.1[ \t]*$
+```
+
+The grammar permits zero through three leading ASCII spaces and trailing ASCII
+spaces or tabs. It permits no leading tab and no other internal whitespace.
+The field name and value are case-sensitive, including the lowercase
+`contract` and `llamarc42/v0.1` value.
+
+The following source does not contribute candidates:
+
+- lines inside fenced code blocks. An opener has zero through three leading
+  spaces followed by at least three matching backticks or tildes. A closer has
+  zero through three leading spaces, at least the opening run length of the
+  same character, and only trailing ASCII whitespace. An unclosed fence remains
+  open through end of file;
+- indented-code lines beginning with a tab or at least four spaces;
+- blockquote lines whose first non-space character after zero through three
+  spaces is `>`; and
+- list items, headings, table cells, inline-code examples, quoted strings, or
+  prose whose source line does not satisfy the candidate form.
+
+Recognition produces exactly one of these compatibility results:
+
+- exactly one candidate that matches the accepted grammar is compatible;
+- no candidate is `Invalid` as a missing declaration, even if ignored examples
+  contain the literal text;
+- more than one candidate is `Invalid` as duplicate or ambiguous declarations;
+  and
+- exactly one candidate that does not match the accepted grammar is `Invalid`
+  as malformed or selecting an unsupported contract value.
+
+For one nonmatching candidate, `unsupported value` applies only when the
+case-sensitive field name and required internal spacing are exactly
+`Documentation contract: ` but the value, after permitted trailing whitespace
+is removed, is not `llamarc42/v0.1`. Every other single nonmatching candidate is
+`malformed`. When there are multiple candidates, duplicate or ambiguous takes
+precedence over their individual defects.
+
+The diagnostic MUST distinguish missing, duplicate or ambiguous, malformed,
+and unsupported-value cases. This check does not validate the project name,
+purpose, links, other Markdown structure, or substantive prose; those remain
+DOC-04 and human review concerns.
+
 Entries elsewhere in the selected target are outside the approved artifact set.
 Initialization MUST preserve them and MUST NOT infer project compatibility or
 authority from their names or contents. Such entries make the layout invalid
@@ -348,9 +454,38 @@ The same target state and template set MUST produce the same ordered plan.
 
 ## 8. Application, failures, and recovery
 
-Application MUST re-preflight immediately before writing. If the target state,
-template identity, or contract version no longer matches the plan, application
-MUST refuse the plan without performing planned writes.
+Application MUST re-preflight immediately before writing. Re-preflight repeats
+target-ancestry inspection, artifact inspection, and declaration recognition
+and compares the current result with the recorded plan, template identity, and
+contract version.
+
+### 8.1 Stale-plan refusal
+
+If any target state, artifact state, template identity, or contract version no
+longer matches the recorded plan, application MUST refuse that plan before any
+write. The aggregate outcome is `Invalid`, not `Error`, because application did
+not begin. Every approved artifact MUST still receive a current result:
+
+- a compatible regular file is `Existing`, including a file that appeared
+  after planning or whose bytes changed while remaining initialization-compatible;
+- a conflicting, linked, reparse, special, unreadable, malformed, duplicate,
+  or unsupported file is `Invalid`;
+- an artifact that is currently absent is `Skipped` because the stale plan is
+  not authorized to create it; and
+- if the target or any target-ancestor component is unavailable, linked,
+  reparse, or otherwise invalid, both artifacts are `Invalid`.
+
+A template-identity or contract-version mismatch is a plan-level invalidity.
+The artifacts are classified from the current filesystem as `Existing`,
+`Invalid`, or `Skipped` using the rules above; no artifact is mislabeled merely
+to manufacture an `Invalid` artifact result.
+
+The refusal diagnostic MUST identify the recorded target and the recorded and
+current template identity and contract version as applicable. For each changed
+artifact, it MUST report the target-relative path, recorded classification,
+current classification, and a non-content-revealing reason for the change. No
+write is permitted. Retry requires producing a new plan from the current state;
+application MUST NOT silently adopt or update the stale plan.
 
 When application proceeds, artifacts MUST be attempted in plan order:
 
@@ -381,19 +516,29 @@ the remaining missing approved artifacts may be created.
 | Scenario | Required plan/result | Writes allowed | Verification maturity |
 | --- | --- | --- | --- |
 | Existing empty target | Plan both files for creation; apply in defined order; report authoring still required in `project.md`. | Both approved files only. | Specification review now; later Core and CLI filesystem tests. |
+| Equivalent implicit and explicit direct paths | The same normalized, non-link component chain produces the same ordered classifications and result. | According to the shared plan. | Specification review now; later invocation-pair integration test. |
 | Compatible partial target with `project.md` | Preserve `project.md` as `Existing`; create missing `AGENTS.md`. | `AGENTS.md` only. | Specification review now; later golden-plan and integration tests. |
 | Compatible partial target with `AGENTS.md` | Preserve `AGENTS.md`; create scaffold `project.md` after confirming no enclosing project. | `project.md` only. | Specification review now; later tests. |
 | Complete initialized target | Classify both files `Existing`; aggregate `No change`. | None. | Specification review now; later byte-for-byte snapshot test. |
 | Existing customized compatible files | Preserve both files even when their bytes differ from the current templates. | None. | Specification review now; later fixture test. |
-| Conflicting contract declaration | Classify `project.md` `Invalid`; block the plan and mark missing artifacts `Skipped`. | None. | Specification review now; later fixture test. |
+| One exact declaration with permitted surrounding spaces | Count the top-level declaration once and preserve `project.md` as `Existing`. | Missing approved artifacts only. | Specification review now; later line-ending and whitespace fixtures. |
+| Declaration text only in quoted prose, blockquote, inline code, indented code, or fenced example | Ignore the example occurrences; with no candidate declaration, classify `project.md` `Invalid` as missing. | None. | Specification review now; later Markdown-source fixtures. |
+| Duplicate declaration candidates | Classify `project.md` `Invalid` as duplicate or ambiguous; classify a missing approved artifact `Skipped`. | None. | Specification review now; later fixture test. |
+| Malformed or unsupported declaration candidate | Classify `project.md` `Invalid` with the specific malformed or unsupported-value reason; classify a missing approved artifact `Skipped`. | None. | Specification review now; later case, spacing, and value fixtures. |
 | Existing special or linked artifact path | Classify that artifact `Invalid`; do not follow the entry. | None. | Specification review now; later platform-specific tests. |
 | Unwritable target known at preflight | Report `Invalid` with the affected path and corrective action. | None. | Specification review now; later permissions tests. |
 | Unexpected failure after `project.md` creation | Report `project.md` `Created`, the failed artifact `Invalid`, any later artifacts `Skipped`, and aggregate `Error`. | No further writes after failure. | Requires injected implementation-time failure test. |
 | Nonexistent explicit target | Report invalid target and instruct the user to create it before retrying. | None. | Specification review now; later CLI/Core test. |
-| Target is a link or reparse point | Report invalid target without following it. | None. | Specification review now; later cross-platform tests. |
+| Target or target ancestor is a link or reparse point | Classify both artifacts `Invalid`, identify the first offending component, and require a direct non-link path. The same rule applies to implicit and explicit selection. | None. | Specification review now; later cross-platform component-chain tests. |
 | Target lies inside an existing project | Report invalid implicit nested-project attempt. | None. | Specification review now; later discovery fixture. |
 | Rerun after successful initialization | Report both artifacts `Existing` and aggregate `No change`. | None. | Specification review now; later snapshot test. |
 | Retry after reported partial failure | Preserve compatible files already created and create only still-missing approved artifacts. | Missing approved files only. | Specification review now; later injected-failure recovery test. |
+| Re-preflight finds a planned missing artifact now compatible | Classify the new file `Existing`; classify unchanged compatible files `Existing` and still-absent artifacts `Skipped`; aggregate `Invalid` and require a new plan. | None. | Specification review now; later between-phase mutation test. |
+| Re-preflight finds a planned missing artifact now conflicting | Classify the changed artifact `Invalid`; classify unchanged compatible files `Existing` and still-absent artifacts `Skipped`; aggregate `Invalid` and require a new plan. | None. | Specification review now; later regular-file conflict test. |
+| Re-preflight finds a planned artifact now linked or reparse | Classify the changed artifact `Invalid`; classify all other artifacts from current state, using `Skipped` for absent files; aggregate `Invalid` and require a new plan. | None. | Specification review now; later link-substitution test. |
+| Re-preflight finds a previously compatible artifact changed | If it remains compatible, classify it `Existing`; otherwise classify it `Invalid`. Classify every other artifact from current state, aggregate `Invalid`, and require a new plan. | None. | Specification review now; later compatible- and incompatible-edit tests. |
+| Re-preflight finds a template or contract identity mismatch | Classify each artifact from current state as `Existing`, `Invalid`, or `Skipped`; aggregate `Invalid`, report recorded and observed identities, and require a new plan. | None. | Specification review now; later stale-version-plan tests. |
+| Target becomes unavailable before application | Classify both artifacts `Invalid`, aggregate `Invalid`, and report the target access failure. | None. | Specification review now; later between-phase removal and permissions tests. |
 
 ## 10. Ownership boundaries
 
@@ -442,7 +587,8 @@ already scoped by
 
 A later template version MUST NOT rewrite or migrate an existing project.
 Compatibility is based on the accepted documentation contract and the limited
-initialization checks in section 6, not byte equality with the newest template.
+initialization checks in sections 6 and 7.1, not byte equality with the newest
+template.
 
 A later template version MAY change assets for newly created projects only when
 the corresponding normative documentation change has been accepted. Core MUST
@@ -460,14 +606,19 @@ Acceptance requires explicit maintainer decisions on:
 
 1. whether an existing target directory is required, rather than allowing init
    to create its parent-visible target;
-2. whether implicit nested-project creation must remain prohibited;
-3. whether the non-fabricating `project.md` placeholder scaffold is acceptable
+2. whether rejecting every link or reparse component in the selected target's
+   ancestry is the appropriate v0.1 tradeoff instead of physical alias
+   resolution;
+3. whether implicit nested-project creation must remain prohibited;
+4. whether the non-fabricating `project.md` placeholder scaffold is acceptable
    given the non-interactive CLI shape;
-4. whether the generic `AGENTS.md` entry point is part of every approved
+5. whether the generic `AGENTS.md` entry point is part of every approved
    standalone initialization despite being optional for conformance;
-5. whether the proposed template identity is sufficiently stable; and
-6. whether the limited `project.md` compatibility check correctly avoids
-   absorbing DOC-04 validation scope.
+6. whether the proposed template identity is sufficiently stable;
+7. whether the narrow declaration grammar correctly distinguishes project
+   compatibility from the complete DOC-04 validation scope; and
+8. whether re-preflight drift should invalidate the recorded plan even when the
+   observed filesystem state is independently compatible.
 
 These decisions are part of DOC-03 review. This proposal does not accept them
 by its presence or by merge into `history/`.
