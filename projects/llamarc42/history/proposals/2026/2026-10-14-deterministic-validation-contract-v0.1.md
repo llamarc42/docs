@@ -115,7 +115,8 @@ Each inventory entry MUST contain:
 
 | Field | Meaning |
 | --- | --- |
-| `path` | Normalized project-relative identity using `/` and Unicode NFC. |
+| `sourcePath` | Project-relative source locator using `/`, preserving the distinguishable case and Unicode code-point representation exposed by the filesystem. |
+| `path` | Stable document identity derived from `sourcePath` using `/` and Unicode NFC. |
 | `documentType` | `ProjectDescriptor`, `DecisionRecord`, `CurrentGuidance`, `HistoricalRecord`, `Navigation`, or `Supplemental`. |
 | `authorityState` | `Current`, `NonCurrent`, `None`, or `Indeterminate`. |
 | `lifecycleStatus` | An explicitly recognized status when one exists; otherwise absent. |
@@ -123,6 +124,9 @@ Each inventory entry MUST contain:
 
 `Indeterminate` means structural defects prevent a unique authority result. It
 MUST NOT be used merely because a document's prose is incomplete or disputed.
+Two source entries that collide after NFC normalization or case-folding retain
+separate inventory entries and separate `sourcePath` values even when their
+normalized `path` values are equal.
 
 ### 4.3 Diagnostic
 
@@ -134,11 +138,17 @@ Every diagnostic MUST contain:
 | `severity` | `Error` or `Warning` as fixed by that code. |
 | `message` | Deterministic, non-empty, actionable text satisfying the code's message requirement. |
 | `path` | Normalized project-relative path when the condition belongs to one document; otherwise absent. |
+| `sourcePath` | Original distinguishable source locator when the condition belongs to one source entry; otherwise absent. |
 | `line` | One-based source line when section 9 requires a precise content location; otherwise absent. |
-| `relatedPaths` | Zero or more normalized related paths, de-duplicated and ordinally ordered. |
+| `relatedSourcePaths` | Zero or more original distinguishable source locators, de-duplicated only by exact code-point equality and ordinally ordered. |
 
 Consumers MUST use `code`, `severity`, and `outcome` for control flow. They MUST
 NOT parse `message` to determine program behavior.
+
+A diagnostic for a collision or duplicate set MUST omit singular `sourcePath`
+and retain every distinguishable member in `relatedSourcePaths`. Its normalized
+`path`, when present, identifies the collided identity rather than replacing
+the original locators.
 
 ### 4.4 Aggregate outcomes
 
@@ -168,6 +178,14 @@ runtime.
 Raw HTML links, URLs written only as prose, image destinations, and content
 inside code blocks do not create contract references. Heading fragments are
 not validated because fragment generation is renderer-specific.
+
+Filesystem entry names MUST be obtained by enumeration and retained as
+`sourcePath` values without host-native case correction. Framework-fixed paths
+and mandatory filename patterns are recognized by ordinal, case-sensitive
+matching after Unicode NFC normalization. Case-folding detects portable
+identity collisions only; it never recognizes, selects, or renames an entry.
+This rule does not impose lowercase styling on arbitrary project-specific
+filenames.
 
 ### 5.2 Header metadata
 
@@ -202,11 +220,23 @@ local destination, validation MUST:
 4. resolve and normalize `.` and `..` segments relative to the referring
    document;
 5. require the result to remain physically within the discovered project root;
-6. require a non-link regular target; and
-7. reject a target reached through an excluded link or nested-project subtree.
+6. normalize both the resolved destination and each source-entry candidate to
+   Unicode NFC while preserving case;
+7. select a target only by ordinal, case-sensitive equality of those
+   NFC-normalized project-relative paths;
+8. require exactly one matching non-link regular target; and
+9. reject a target reached through an excluded link or nested-project subtree.
 
 A local target MAY be a Markdown contract document or a non-Markdown supporting
 asset. A valid link does not grant its target authority.
+
+Resolution MUST use enumerated source-entry names rather than native
+case-insensitive path lookup. Unicode default case-folding is used only to
+detect portable identity collisions and to explain a likely case mismatch; it
+MUST NOT select or silently correct a reference. If no exact-case NFC match
+exists, `LC42V106` is emitted even when a case-folded match exists. If multiple
+source entries have the same exact-case NFC path, `LC42V104` reports their
+collision and the reference is non-unique under `LC42V106`.
 
 ## 6. Project descriptor rules
 
@@ -309,9 +339,12 @@ An authoritative supersession edge is valid only when:
   without a cycle.
 
 A `Superseded` intermediate ADR MAY retain the outgoing `## Supersedes` edge it
-established while accepted. Non-accepted ADRs MAY record intended relationship
-links for review, but those links have no authority effect. Validation MUST NOT
-invent a missing transition or edge.
+established while accepted. Authority-edge status and reciprocity checks apply
+only when the source ADR is `Accepted` or `Superseded`. Proposed, Rejected, and
+Withdrawn ADRs MAY record intended or historical relationship links for review;
+those links still receive independent path, duplicate, and self-link checks but
+have no authority effect. Validation MUST NOT invent a missing transition,
+target path, or edge.
 
 ### 8.4 Amendments
 
@@ -357,19 +390,36 @@ In the examples below, “valid example” means the rule does not emit its code
 
 | Code | Severity | Condition and required message content | Valid example | Failure example |
 | --- | --- | --- | --- | --- |
-| `LC42V100` | Error | A contract Markdown file is not readable UTF-8 text; identify the path and access or encoding condition. | UTF-8 Markdown, BOM optional. | UTF-16 file or persistent read denial. |
+| `LC42V100` | Error | A contract Markdown file is not readable UTF-8 text; identify the path and access or encoding condition. An unreadable specification has `Indeterminate` authority because its optional lifecycle cannot be evaluated. | UTF-8 Markdown, BOM optional. | UTF-16 specification or persistent read denial. |
 | `LC42V101` | Error | A document identity contains an ASCII control character or one of `<`, `>`, `:`, `"`, backslash, `?`, `*`, or ASCII vertical bar; identify the segment and prohibited character class. | `guides/api.md`. | `guides/a?b.md` on a filesystem that permits it. |
 | `LC42V102` | Error | A path segment ends in a space or period; identify the segment. | `quality/risks.md`. | `quality/risks./notes.md`. |
 | `LC42V103` | Error | A segment filename stem is a reserved portable name; identify the segment. | `guides/console.md`. | `guides/CON.md`. |
-| `LC42V104` | Error | Two or more source paths collide after NFC normalization and default case-folding; report one diagnostic with all colliding paths. | `guides/api.md` only. | `guides/API.md` and `guides/api.md`. |
+| `LC42V104` | Error | Two or more source paths collide after NFC normalization and default case-folding; retain every distinct original locator in `relatedSourcePaths` and report the normalized collision identity. | `guides/api.md` only. | `guides/API.md` and `guides/api.md`, or `café.md` using U+00E9 and `café.md` using U+0065 U+0301. |
 | `LC42V105` | Error | A local link is malformed, absolute, uses a backslash, escapes the root after relative resolution, or has invalid UTF-8 percent-encoding; identify destination and reason. | Destination `guides/setup.md`, or `../guides/setup.md` from a nested document when it remains inside the root. | Destination `../../outside.md`, `C:\\x.md`, or `file:///x.md`. |
-| `LC42V106` | Error | A syntactically valid local link does not resolve to an existing non-link regular file; identify destination and resolved project-relative path. | Link to an existing file or asset. | Link to `missing.md` or a directory. |
+| `LC42V106` | Error | A syntactically valid local link has no unique ordinal case-sensitive match after NFC normalization, or its match is not an existing non-link regular file. Identify the original destination, normalized candidate, and any case-fold-only or NFC-colliding source locators without selecting them. | Destination `guides/setup.md` exactly matches that source path; composed and decomposed spellings match one unique NFC identity. | Destination `guides/Setup.md` when only `guides/setup.md` exists, a missing file, a directory, or two NFC-equivalent source entries. |
 | `LC42V107` | Error | A local link resolves only through an excluded link/reparse entry or into a nested-project subtree; identify the excluded boundary. | Link within the same non-link project tree. | Parent project links into a child project's document. |
+| `LC42V109` | Error | An objectively identifiable framework-controlled daily-iteration name violates its mandatory component grammar: a numeric year-directory and date digits must be ASCII, a present topic suffix must be lowercase ASCII kebab-case, and its Markdown extension must be exact lowercase `.md`. Identify the original component and required grammar. | `2026/2026-10-14-review.md`; arbitrary `guides/API.md` is outside this framework-controlled grammar and is not an error. | `2026-10-14-Review.md`, `2026-10-14_review.md`, a numeric year or date using non-ASCII digits, or `2026-10-14.MD`. |
 
 Directory links and linked files elsewhere are excluded from inventory without a
 diagnostic, as required by Documentation Contract v0.1. `LC42V106` or
 `LC42V107` applies only when an inventoried document explicitly refers to a
 non-regular or excluded target.
+
+A daily-iteration filename candidate is a regular file below
+`history/iterations/` whose basename begins with four Unicode decimal digits,
+`-`, two Unicode decimal digits, `-`, and two Unicode decimal digits, with a
+case-insensitive Markdown-like extension. A four-Unicode-decimal-digit parent
+segment directly below `history/iterations/` is also a numeric year-directory
+candidate. Candidate detection exists only to validate the accepted
+framework-controlled year, date, topic, and extension components; it does not
+make other historical filenames invalid or add a wrong-extension candidate to
+the contract-document inventory.
+
+ADR filenames remain governed by `LC42V200`. Framework-fixed names are
+recognized only by their exact accepted spelling. Arbitrary project-specific
+document names MAY use mixed case and receive no error merely for doing so;
+their lowercase ASCII kebab-case style remains a recommendation rather than a
+conformance requirement.
 
 ### 9.3 Specification lifecycle
 
@@ -385,7 +435,7 @@ type. No diagnostic inspects lifecycle-looking prose outside header metadata.
 
 | Code | Severity | Condition and required message content | Valid example | Failure example |
 | --- | --- | --- | --- | --- |
-| `LC42V200` | Error | A Markdown file under `decisions/` does not match the ADR filename grammar; identify the required grammar. | `decisions/ADR-007-local-cache.md`. | `decisions/ADR-7-Local_Cache.md`. |
+| `LC42V200` | Error | A regular file under `decisions/` with an `ADR-` basename or a case-insensitive Markdown-like extension does not match the exact ADR filename grammar, including lowercase `.md`; identify the required grammar. Wrong-extension candidates do not enter the document inventory. | `decisions/ADR-007-local-cache.md`. | `decisions/ADR-7-Local_Cache.md` or `decisions/ADR-007-local-cache.MD`. |
 | `LC42V201` | Error | More than one decision path uses the same `ADR-NNN`; emit one diagnostic with all paths. | Unique ADR numbers. | Two `ADR-007-*.md` files. |
 | `LC42V202` | Error | The ADR lacks exactly one H1 containing its filename identifier as a case-sensitive token; identify expected identifier. | `# ADR-007: Local cache`. | `# ADR-008: Local cache` in ADR-007. |
 | `LC42V203` | Error | The ADR lacks a `## Status` section or that section has no status value; identify the required section. | One non-empty Status section. | No Status heading. |
@@ -403,7 +453,7 @@ type. No diagnostic inspects lifecycle-looking prose outside header metadata.
 | `LC42V211` | Error | A relationship link is external or resolves to something other than a decision record in this project; identify source, heading, and target. General missing-link failures use `LC42V106` instead. | Local link to `ADR-001-x.md`. | External link or local link to `../architecture/overview.md`. |
 | `LC42V212` | Error | An ADR relationship targets itself; identify relationship heading. | ADR-002 targets ADR-001. | ADR-002 Amends ADR-002. |
 | `LC42V213` | Error | The same target occurs more than once in one relationship section; identify duplicate target and lines. | One target occurrence. | ADR-001 listed twice under Supersedes. |
-| `LC42V214` | Error | A `Superseded` predecessor lacks exactly one `Superseded by` target, or any declared `Superseded by` edge has a non-Superseded source or lacks the reciprocal `Supersedes` link; identify both paths and missing or contradictory element. | ADR-001 Superseded by ADR-002, reciprocal. | ADR-001 is Superseded with no successor link, or is Accepted while declaring `Superseded by`. |
+| `LC42V214` | Error | For an `Accepted` or `Superseded` source, a declared `Superseded by` edge has an invalid source status or lacks the reciprocal `Supersedes` link; a `Superseded` source also fails when it lacks exactly one successor target. Identify the source and only target paths that are explicitly declared; never invent a path for a missing successor. | ADR-001 is Superseded by ADR-002 with a reciprocal link; a Proposed ADR may record an intended successor without authority-edge evaluation. | ADR-001 is Superseded with no successor link, or is Accepted while declaring `Superseded by`. |
 | `LC42V215` | Error | An authoritative `Supersedes` edge has invalid statuses or lacks reciprocal predecessor metadata; identify both paths and required statuses. | Accepted ADR-002 supersedes Superseded ADR-001. | Accepted ADR-002 supersedes Accepted ADR-001. |
 | `LC42V216` | Error | A supersession chain cycles, branches at a predecessor, or fails to terminate at exactly one Accepted ADR; report the traversed related paths. | Superseded ADR-001 -> Accepted ADR-002. | ADR-001 and ADR-002 point to each other as successors. |
 | `LC42V217` | Error | An authoritative amendment has a non-Accepted endpoint or lacks the reciprocal `Amends`/`Amended by` link; identify both paths and defect. | Two Accepted ADRs with reciprocal links. | Accepted amender targets a Proposed ADR. |
@@ -415,13 +465,16 @@ diagnostics merely because they are non-current.
 
 ### 9.6 Iteration history and navigation recommendations
 
-These warnings make explicit `SHOULD` conventions inspectable. They do not make
-an otherwise conforming project invalid.
+Mandatory framework-controlled filename components are errors under
+`LC42V109` and `LC42V301`. The warning rules in this section make `SHOULD`
+placement and navigation conventions inspectable without making an otherwise
+conforming project invalid. They do not impose a universal lowercase style on
+arbitrary project documents.
 
 | Code | Severity | Condition and required message content | Valid example | Failure example |
 | --- | --- | --- | --- | --- |
-| `LC42V300` | Warning | A Markdown file anywhere below `history/iterations/` does not match the preferred full placement `history/iterations/YYYY/YYYY-MM-DD.md` or `history/iterations/YYYY/YYYY-MM-DD-<lowercase-kebab-topic>.md`; identify preferred form. | `history/iterations/2026/2026-10-14-review.md`. | `history/iterations/2026-10-14.md` or `history/iterations/2026/2026-10-14_Review.md`. |
-| `LC42V301` | Warning | A convention-shaped iteration filename contains an invalid Gregorian calendar date; identify the date. | `2024-02-29.md`. | `2026-02-29.md`. |
+| `LC42V300` | Warning | An iteration record does not use the preferred full placement `history/iterations/YYYY/YYYY-MM-DD.md` or `history/iterations/YYYY/YYYY-MM-DD-<topic>.md`; identify the preferred placement without converting an otherwise arbitrary historical filename into a mandatory lowercase name. | `history/iterations/2026/2026-10-14-review.md`. | `history/iterations/2026-10-14.md` or `history/iterations/by-topic/design-notes.md`. |
+| `LC42V301` | Error | A daily-iteration filename with otherwise valid mandatory component grammar contains an invalid Gregorian calendar date; identify the date. | `2024-02-29.md`. | `2026-02-29.md`. |
 | `LC42V302` | Warning | The filename year differs from its immediate `YYYY` directory; identify both years. | `2026/2026-10-14.md`. | `2025/2026-10-14.md`. |
 | `LC42V400` | Warning | A present root `AGENTS.md` has local links but its first local Markdown-document link is not `project.md`, or it has no local link to `project.md`; state the navigation recommendation. | First local document link targets `project.md`. | First local document link targets `architecture/overview.md`. |
 
@@ -456,28 +509,46 @@ prerequisite is unavailable:
 - `LC42V150` suppresses `LC42V151` for the ambiguous specification status;
 - `LC42V204` suppresses `LC42V205` for the ambiguous ADR status;
 - `LC42V106` suppresses `LC42V211` for the same missing relationship target;
-  and
+- `LC42V109` suppresses `LC42V301` when the same filename lacks parseable exact
+  ASCII date components and suppresses `LC42V302` when either year cannot be
+  determined; and
 - an invalid ADR identifier or status suppresses authority-edge evaluation that
   depends on it, while independent form and link rules still run.
 
 One diagnostic is emitted per source occurrence except where a code explicitly
 defines one diagnostic for a collision or duplicate set.
 
+Every conformance code has exactly one ordering phase:
+
+| Phase rank and name | Codes |
+| --- | --- |
+| 1 — Root/project | `LC42V001`–`LC42V009` |
+| 2 — Path/identity | `LC42V100`, `LC42V101`, `LC42V102`, `LC42V103`, `LC42V104`, `LC42V109`, `LC42V200`, `LC42V201`, `LC42V301` |
+| 3 — Document structure | `LC42V150`, `LC42V151`, `LC42V202`, `LC42V203`, `LC42V204`, `LC42V205`, `LC42V206`, `LC42V207`, `LC42V208` |
+| 4 — Local reference | `LC42V105`, `LC42V106`, `LC42V107` |
+| 5 — ADR relationship | `LC42V210`, `LC42V211`, `LC42V212`, `LC42V213`, `LC42V214`, `LC42V215`, `LC42V216`, `LC42V217`, `LC42V218` |
+| 6 — Recommendation | `LC42V300`, `LC42V302`, `LC42V400` |
+
 Diagnostics MUST be ordered by the following keys in order:
 
-1. phase: root/project, path/identity, document structure, local reference,
-   ADR relationship, recommendation;
+1. phase rank from the table above;
 2. normalized `path` using ordinal Unicode code-point order, with absent path
    first;
-3. `line`, with a present line before an absent line for the same path and
-   phase;
-4. numeric diagnostic code;
-5. normalized related path using ordinal Unicode code-point order; and
-6. normalized destination text when all preceding keys are equal.
+3. original `sourcePath` using ordinal Unicode code-point order, with absent
+   source path first;
+4. `line`, with a present line before an absent line for the same path, source,
+   and phase;
+5. numeric diagnostic code;
+6. the ordinally ordered sequence of original `relatedSourcePaths`; and
+7. NFC-normalized destination text followed by original destination text when
+   all preceding keys are equal.
 
-Inventory entries use Documentation Contract v0.1 section 4.3 ordering. Tool
-errors preserve whatever complete inventory and diagnostics were established
-before failure, but the aggregate outcome remains `Error`.
+Inventory entries use Documentation Contract v0.1 section 4.3 grouping. ADRs
+first use numeric decision identifier and then normalized `path`; other entries
+use normalized `path`. Original `sourcePath` is the final ordinal tie-breaker
+for every group, including invalid inventories whose NFC-normalized identities
+are equal. Tool errors preserve whatever complete inventory and diagnostics
+were established before failure, but the aggregate outcome remains `Error`.
 
 ## 11. Authority derivation
 
@@ -491,6 +562,7 @@ ordering:
 | Specification with no lifecycle field | `Current` |
 | Specification with valid `Accepted` lifecycle | `Current` |
 | Specification with valid `Proposed` lifecycle | `NonCurrent` |
+| Unreadable specification | `Indeterminate`; the validator cannot establish whether lifecycle metadata is absent, `Proposed`, or `Accepted` |
 | ADR with status `Accepted` | `Current`, except only relationship effects that are structurally valid apply |
 | ADR with status `Proposed`, `Rejected`, `Withdrawn`, or `Superseded` | `NonCurrent` |
 | Historical record | `NonCurrent` |
@@ -518,9 +590,24 @@ An implementation claiming this contract MUST provide fixture evidence that:
 - LF and CRLF versions of the same source produce equivalent results and line
   numbers;
 - Windows, macOS, and Linux produce the same codes, normalized paths, authority
-  states, and ordering for representable fixture trees;
-- directory links, file links, nested projects, reserved names, NFC/case-fold
-  collisions, and path-boundary attempts are covered;
+  states, and ordering for representable fixture trees, including a link whose
+  case differs from its source target;
+- composed and decomposed Unicode reference spellings resolve to one unique NFC
+  identity, while representable NFC/case-fold collision fixtures retain every
+  distinct original `sourcePath` and produce a deterministic tied order;
+- directory links, file links, nested projects, reserved names, exact-case
+  reference mismatches, NFC/case-fold collisions, and path-boundary attempts
+  are covered;
+- every conformance code occurs exactly once in the phase mapping and phase
+  ordering is verified with multiple diagnostics on the same source;
+- daily iteration fixtures distinguish mandatory ASCII/lowercase filename
+  errors from preferred-placement warnings, and arbitrary mixed-case project
+  filenames do not become errors;
+- Proposed, Rejected, and Withdrawn ADRs with intended supersession links avoid
+  authority-edge diagnostics while Accepted and Superseded sources receive the
+  required status and reciprocity checks;
+- an unreadable specification receives `LC42V100` and `Indeterminate`
+  authority;
 - before-and-after filesystem snapshots prove that validation is read-only;
 - external URLs are never fetched;
 - missing optional ADRs, iteration records, `AGENTS.md`, and optional current
@@ -545,13 +632,23 @@ Acceptance requires explicit maintainer decisions on:
 4. whether the two accepted initialization placeholders must be explicit
    conformance errors;
 5. whether DOC-04 should recognize optional `Proposed` and `Accepted`
-   specification lifecycle metadata through the existing lifecycle hook;
+   specification lifecycle metadata through the existing lifecycle hook, with
+   unreadable specifications assigned `Indeterminate` authority;
 6. whether all parsed local links should be checked while fragments and remote
-   availability remain outside scope;
-7. whether the ADR relationship and suppression rules faithfully encode the
-   accepted contract without interpreting prose; and
-8. whether warnings for iteration naming and `AGENTS.md` navigation should
-   preserve a `Valid` aggregate outcome.
+   availability remain outside scope, using exact-case matching after Unicode
+   NFC normalization rather than host-native case behavior;
+7. whether original `sourcePath` and `relatedSourcePaths` values plus the final
+   source-path tie-breaker preserve distinguishable invalid collision evidence;
+8. whether mandatory framework-controlled ADR and iteration filename rules
+   should be errors while arbitrary-document lowercase style and preferred
+   iteration placement remain non-invalidating recommendations;
+9. whether ADR authority-edge checks should apply only to `Accepted` and
+   `Superseded` sources while other statuses receive independent structural
+   link checks;
+10. whether the explicit one-phase-per-code mapping and ordering keys are
+    sufficient for cross-implementation determinism; and
+11. whether warnings for preferred iteration placement and `AGENTS.md`
+    navigation should preserve a `Valid` aggregate outcome.
 
 These decisions are part of DOC-04 review. This proposal does not accept them by
 its presence or by merge into `history/`.
