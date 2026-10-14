@@ -712,7 +712,9 @@ Acceptance requires explicit maintainer decisions on:
    availability remain outside scope, using exact-case matching after Unicode
    NFC normalization rather than host-native case behavior;
 7. whether original `sourcePath` and `relatedSourcePaths` values plus the final
-   source-path tie-breaker preserve distinguishable invalid collision evidence;
+   source-path tie-breaker preserve distinguishable invalid collision evidence,
+   and whether deriving authority independently per retained source correctly
+   avoids blanket `Indeterminate` classification for identity collisions;
 8. whether mandatory framework-controlled ADR and iteration filename rules
    should be errors while arbitrary-document lowercase style and preferred
    iteration placement remain non-invalidating recommendations;
