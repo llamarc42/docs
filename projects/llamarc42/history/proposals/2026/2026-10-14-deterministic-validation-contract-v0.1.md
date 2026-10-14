@@ -122,11 +122,14 @@ Each inventory entry MUST contain:
 | `lifecycleStatus` | An explicitly recognized status when one exists; otherwise absent. |
 | `decisionId` | `ADR-NNN` for a structurally identifiable ADR; otherwise absent. |
 
-`Indeterminate` means structural defects prevent a unique authority result. It
-MUST NOT be used merely because a document's prose is incomplete or disputed.
-Two source entries that collide after NFC normalization or case-folding retain
+`Indeterminate` means the explicit lifecycle or status evidence required to
+derive authority for a specification or ADR cannot be evaluated uniquely. It
+MUST NOT be used merely because a document's prose is incomplete or disputed,
+or merely because an otherwise classifiable source identity collides. Two
+source entries that collide after NFC normalization or case-folding retain
 separate inventory entries and separate `sourcePath` values even when their
-normalized `path` values are equal.
+normalized `path` values are equal. Section 11 defines the complete authority
+precedence.
 
 ### 4.3 Diagnostic
 
@@ -239,6 +242,29 @@ source entries have the same exact-case NFC path, `LC42V104` reports their
 collision and the reference is non-unique under `LC42V106`.
 
 ## 6. Project descriptor rules
+
+Root discovery applies Documentation Contract v0.1 sections 3.1 and 3.2 to
+each directory from the supplied start toward the filesystem root:
+
+1. An absent exact `project.md` entry causes discovery to continue upward.
+2. An entry that can be deterministically classified as linked, reparse, or
+   non-regular is not a valid root marker. Validation records `LC42V002` and
+   continues upward; it does not treat that directory as a root or as an
+   implicit barrier to an accepted ancestor root.
+3. If enumeration or metadata access cannot determine whether an exact
+   `project.md` entry is absent or is a non-link regular file, discovery stops
+   with `LC42T002` and aggregate `Error`. It MUST NOT guess, emit `LC42V002`, or
+   select an ancestor through the uninspected condition.
+4. The first exact `project.md` entry deterministically established as a
+   non-link regular file selects the nearest valid root. Content readability is
+   evaluated after selection and does not cause discovery to skip that root.
+
+Thus an invalid nearer entry type can coexist with a selected valid ancestor
+and makes that validation result `Invalid`. An environmental inspection failure
+instead prevents complete discovery and makes the result `Error`. If discovery
+reaches the filesystem root after one or more `LC42V002` observations without
+selecting a valid root, it also emits `LC42V001`; no project inventory or
+content validation follows.
 
 The declaration scanner is the scanner accepted in Standalone Initialization
 Contract v0.1 section 7.1. It examines top-level source lines outside fenced
@@ -377,7 +403,7 @@ In the examples below, “valid example” means the rule does not emit its code
 | Code | Severity | Condition and required message content | Valid example | Failure example |
 | --- | --- | --- | --- | --- |
 | `LC42V001` | Error | Upward discovery reaches the filesystem root without a valid `project.md`; name the supplied start and say a non-link regular `project.md` is required. | Start below a root containing regular `project.md`. | Start in a tree with no `project.md`. |
-| `LC42V002` | Error | Upward discovery encounters an entry named `project.md` that is linked, reparse, non-regular, or inaccessible; stop rather than silently selecting an ancestor root, and identify entry kind or access condition. | Regular readable root marker. | `project.md` is a directory or symbolic link. |
+| `LC42V002` | Error | Upward discovery deterministically classifies an exact `project.md` entry as linked, reparse, or non-regular; identify its source location and observed entry kind, then continue searching for the nearest valid ancestor root. Inability to inspect entry metadata is `LC42T002`, not this code. | The nearest exact `project.md` is a non-link regular file, with no invalid marker type encountered below it. | A nearer `project.md` is a directory or symbolic link; report it and select a valid regular ancestor marker when one exists. |
 | `LC42V003` | Error | No declaration candidate exists; require `Documentation contract: llamarc42/v0.1`. | One exact declaration. | Declaration appears only inside a code fence. |
 | `LC42V004` | Error | More than one declaration candidate exists; report candidate lines. | One exact declaration. | Two top-level declaration fields. |
 | `LC42V005` | Error | The single candidate is malformed; identify its line and exact required syntax without echoing unrelated content. | Exact case and spacing. | `Documentation Contract: llamarc42/v0.1`. |
@@ -390,7 +416,7 @@ In the examples below, “valid example” means the rule does not emit its code
 
 | Code | Severity | Condition and required message content | Valid example | Failure example |
 | --- | --- | --- | --- | --- |
-| `LC42V100` | Error | A contract Markdown file is not readable UTF-8 text; identify the path and access or encoding condition. An unreadable specification has `Indeterminate` authority because its optional lifecycle cannot be evaluated. | UTF-8 Markdown, BOM optional. | UTF-16 specification or persistent read denial. |
+| `LC42V100` | Error | Completely read bytes of a contract Markdown file do not decode as UTF-8 text; identify the path and encoding condition. An undecodable specification has `Indeterminate` authority because its optional lifecycle cannot be evaluated. An operating-system read or access failure is `LC42T003`, not this code. | UTF-8 Markdown, BOM optional. | A completely read UTF-16 specification. |
 | `LC42V101` | Error | A document identity contains an ASCII control character or one of `<`, `>`, `:`, `"`, backslash, `?`, `*`, or ASCII vertical bar; identify the segment and prohibited character class. | `guides/api.md`. | `guides/a?b.md` on a filesystem that permits it. |
 | `LC42V102` | Error | A path segment ends in a space or period; identify the segment. | `quality/risks.md`. | `quality/risks./notes.md`. |
 | `LC42V103` | Error | A segment filename stem is a reserved portable name; identify the segment. | `guides/console.md`. | `guides/CON.md`. |
@@ -488,12 +514,15 @@ Tool errors are not conformance diagnostics and always select outcome `Error`.
 | Code | Condition | Required message content |
 | --- | --- | --- |
 | `LC42T001` | The supplied start path does not exist, is not an accessible filesystem entry, or its parent cannot be determined. | Supplied path, observed condition, and retry action. |
-| `LC42T002` | An unexpected enumeration or metadata failure prevents a complete root or document inventory. | Safely reportable path, operation phase, and underlying failure category. |
-| `LC42T003` | An unexpected read failure occurs after a file was established as an accessible regular file. | Document path, read phase, and retry action without exposing content. |
+| `LC42T002` | Enumeration or entry-metadata inspection fails before a complete root or document inventory can be established, including inability to classify a candidate root marker. | Safely reportable path, operation phase, and underlying failure category; during root discovery, also state that no ancestor was selected through the uninspected condition. |
+| `LC42T003` | Opening or completely reading a file fails after metadata established it as a non-link regular file. | Document path, read phase, underlying failure category, and retry action without exposing content. |
 | `LC42T999` | An internal validator failure prevents a trustworthy result. | Stable code, failed phase, and statement that conformance was not determined. |
 
-Known persistent unreadability or unsupported text encoding is `LC42V100`.
-Unexpected I/O after a successful accessibility check is `LC42T003`.
+Unsupported UTF-8 encoding after a complete byte read is `LC42V100`. Failure to
+obtain the complete bytes is `LC42T003`, regardless of whether the operating
+system reports access denial, sharing conflict, device error, or another I/O
+condition. This boundary depends on the completed operation, not on retry count
+or an implementation's judgment about whether a failure is expected.
 
 ## 10. Deterministic aggregation and ordering
 
@@ -501,8 +530,14 @@ Validation SHOULD continue after a diagnostic when later rules can be evaluated
 safely and independently. It MUST suppress derivative diagnostics when a
 prerequisite is unavailable:
 
-- `LC42V001` or `LC42V002` ends conformance evaluation because no valid root
-  exists;
+- `LC42T002` during root discovery ends evaluation with `Error` because the
+  nearest valid root cannot be determined safely;
+- `LC42T003` ends content-dependent evaluation for the affected document and
+  selects aggregate `Error`; any already established inventory entry remains in
+  the partial result;
+- `LC42V002` does not stop upward discovery; each deterministically invalid
+  marker type is retained, and `LC42V001` ends conformance evaluation only when
+  the filesystem root is reached without selecting a valid root;
 - `LC42V100` suppresses content, link, lifecycle, and relationship rules for
   that unreadable document;
 - `LC42V004` suppresses `LC42V005` and `LC42V006` for the ambiguous declaration;
@@ -553,21 +588,45 @@ were established before failure, but the aggregate outcome remains `Error`.
 ## 11. Authority derivation
 
 Authority MUST be derived after structural classification and before result
-ordering:
+ordering. The following precedence is exhaustive and applies independently to
+each retained `sourcePath`:
 
-| Document condition | Authority state |
-| --- | --- |
-| Discovered regular `project.md` | `Current`; content diagnostics affect conformance but not its type-assigned authority |
-| Current-guidance document outside `specifications/` | `Current` |
-| Specification with no lifecycle field | `Current` |
-| Specification with valid `Accepted` lifecycle | `Current` |
-| Specification with valid `Proposed` lifecycle | `NonCurrent` |
-| Unreadable specification | `Indeterminate`; the validator cannot establish whether lifecycle metadata is absent, `Proposed`, or `Accepted` |
-| ADR with status `Accepted` | `Current`, except only relationship effects that are structurally valid apply |
-| ADR with status `Proposed`, `Rejected`, `Withdrawn`, or `Superseded` | `NonCurrent` |
-| Historical record | `NonCurrent` |
-| Navigation or supplemental document | `None` |
-| Colliding identity, invalid specification lifecycle, or ADR whose status cannot be determined | `Indeterminate` |
+1. Determine structural document type from the exact source path under
+   Documentation Contract v0.1. NFC and case-fold collision detection does not
+   merge source entries or change their structural type.
+2. Assign type-derived authority to types that do not depend on document
+   lifecycle content: the project descriptor and current-guidance documents
+   outside `specifications/` are `Current`; historical records are
+   `NonCurrent`; navigation and supplemental documents are `None`.
+3. For a specification, no lifecycle field means `Current`, exact `Accepted`
+   means `Current`, and exact `Proposed` means `NonCurrent`. The specification
+   is `Indeterminate` only when its lifecycle cannot be evaluated because its
+   complete bytes are unavailable or not valid UTF-8, or because `LC42V150` or
+   `LC42V151` establishes duplicate or invalid lifecycle metadata.
+4. For an ADR, exact `Accepted` means `Current`; exact `Proposed`, `Rejected`,
+   `Withdrawn`, or `Superseded` means `NonCurrent`. The ADR is `Indeterminate`
+   only when its status cannot be evaluated because its complete bytes are
+   unavailable or not valid UTF-8, or because `LC42V203`, `LC42V204`, or
+   `LC42V205` establishes missing, ambiguous, or invalid status content.
+5. Identity, portable-path, form, and relationship diagnostics do not otherwise
+   replace an authority state already determined above. In particular,
+   `LC42V104` and `LC42V201` make the project invalid but do not by themselves
+   make a retained source entry's authority `Indeterminate`.
+
+When a tool error prevents a complete read, an already inventoried
+specification or ADR uses `Indeterminate` in the partial result and the aggregate
+outcome remains `Error`. Other already classified document types retain their
+type-derived state in that partial result.
+
+Collision examples make the precedence explicit:
+
+| Colliding sources | Diagnostics | Authority states |
+| --- | --- | --- |
+| `history/API.md` and `history/api.md` | `LC42V104` | Both remain `NonCurrent`; a collision cannot make historical evidence current or indeterminate. |
+| `README.md` and `readme.md` | `LC42V104` | Exact `README.md` is navigation and the other source is supplemental; both are `None`. |
+| `guides/API.md` and `guides/api.md` | `LC42V104` | Both remain `Current` by current-guidance type, while the project is `Invalid`. |
+| NFC-equivalent specification source paths with exact `Accepted` and `Proposed` lifecycle values | `LC42V104` | The retained sources are respectively `Current` and `NonCurrent`; either source becomes `Indeterminate` only for its own unreadable, duplicate, or invalid lifecycle evidence. |
+| `ADR-007-alpha.md` and `ADR-007-beta.md` with exact `Accepted` and `Proposed` statuses | `LC42V201` | The retained ADR sources are respectively `Current` and `NonCurrent`; duplicate decision identity is still an error, and an ADR becomes `Indeterminate` only when its own status cannot be evaluated. |
 
 An invalid supersession edge has no authority effect. An accepted predecessor
 does not become non-current unless its explicit status is `Superseded`; an
@@ -595,6 +654,9 @@ An implementation claiming this contract MUST provide fixture evidence that:
 - composed and decomposed Unicode reference spellings resolve to one unique NFC
   identity, while representable NFC/case-fold collision fixtures retain every
   distinct original `sourcePath` and produce a deterministic tied order;
+- collision fixtures for historical, navigation, current-guidance,
+  specification, and ADR sources produce the authority states in section 11;
+  collision diagnostics alone never select `Indeterminate`;
 - directory links, file links, nested projects, reserved names, exact-case
   reference mismatches, NFC/case-fold collisions, and path-boundary attempts
   are covered;
@@ -606,8 +668,18 @@ An implementation claiming this contract MUST provide fixture evidence that:
 - Proposed, Rejected, and Withdrawn ADRs with intended supersession links avoid
   authority-edge diagnostics while Accepted and Superseded sources receive the
   required status and reciprocity checks;
-- an unreadable specification receives `LC42V100` and `Indeterminate`
+- an undecodable specification receives `LC42V100` and `Indeterminate`
   authority;
+- a nearer linked, reparse, or non-regular `project.md` emits `LC42V002` and
+  discovery continues to a valid ancestor; when no valid ancestor exists,
+  `LC42V001` is also emitted;
+- inability to enumerate an ancestor or inspect candidate-marker metadata emits
+  `LC42T002`, stops discovery without selecting through the unknown condition,
+  and produces `Error` rather than `Invalid`;
+- a selected non-link regular marker with completely readable non-UTF-8 bytes
+  emits `LC42V100`, while failure to obtain its complete bytes emits
+  `LC42T003`; fixtures cover access denial, interrupted reads, and invalid
+  encoding without allowing the same observation to select both outcomes;
 - before-and-after filesystem snapshots prove that validation is read-only;
 - external URLs are never fetched;
 - missing optional ADRs, iteration records, `AGENTS.md`, and optional current
@@ -623,7 +695,9 @@ CORE-02 owns executable fixtures after this proposal is accepted and promoted.
 Acceptance requires explicit maintainer decisions on:
 
 1. whether UTF-8 with optional BOM is the sole portable Markdown encoding for
-   deterministic v0.1 validation;
+   deterministic v0.1 validation, with invalid encoding treated as conformance
+   failure only after a complete byte read and I/O failure treated as a tool
+   error;
 2. whether CommonMark 0.31.2 provides the stable source model for headings and
    links without selecting an implementation library;
 3. whether a non-empty H1 plus at least one authored body line is the narrowest
@@ -646,9 +720,13 @@ Acceptance requires explicit maintainer decisions on:
    `Superseded` sources while other statuses receive independent structural
    link checks;
 10. whether the explicit one-phase-per-code mapping and ordering keys are
-    sufficient for cross-implementation determinism; and
+    sufficient for cross-implementation determinism;
 11. whether warnings for preferred iteration placement and `AGENTS.md`
-    navigation should preserve a `Valid` aggregate outcome.
+    navigation should preserve a `Valid` aggregate outcome; and
+12. whether nearest-root discovery should continue past deterministically
+    linked, reparse, or non-regular marker entries while treating inability to
+    inspect a candidate marker as `Error` without selecting an ancestor through
+    that unknown condition.
 
 These decisions are part of DOC-04 review. This proposal does not accept them by
 its presence or by merge into `history/`.
