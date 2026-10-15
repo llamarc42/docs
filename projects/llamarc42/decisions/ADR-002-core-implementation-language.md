@@ -26,6 +26,10 @@ The core engine will be implemented in C#.
 
 PowerShell will be retained as a wrapper and bootstrap surface during early development and for automation scenarios.
 
+## Amended by
+
+- [ADR-006: Framework Repository Responsibilities and Architectural Reconciliation](ADR-006-framework-repository-responsibilities.md)
+
 ## Consequences
 
 ### Positive

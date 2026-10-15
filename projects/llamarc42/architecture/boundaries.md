@@ -19,9 +19,10 @@ Must not:
 
 Responsible for:
 
-- reusable C# implementation of accepted discovery, validation, template, and initialization rules;
-- deterministic, read-only inspection where required by contract; and
-- structured outcomes that user-facing tools can present consistently.
+- reusable C# implementation of accepted discovery and validation rules;
+- the single executable copy of versioned initialization template assets and deterministic selection of the applicable accepted template;
+- initialization preflight, deterministic planning, safe application, and structured results and diagnostics; and
+- deterministic, read-only inspection where required by contract.
 
 Must not:
 
@@ -34,13 +35,13 @@ Must not:
 
 Responsible for:
 
-- user-facing command parsing and terminal experience;
+- command invocation, argument handling, and user interaction;
 - invoking Core behavior; and
-- presenting results and diagnostics.
+- terminal and machine-readable presentation of Core results and diagnostics.
 
 Must not:
 
-- duplicate or reinterpret accepted Core rules;
+- duplicate template assets or selection, initialization rules, documentation discovery, validation logic, authority classification, or other accepted Core behavior;
 - become required for reading or manually maintaining documentation; or
 - expand accepted contracts through command behavior.
 

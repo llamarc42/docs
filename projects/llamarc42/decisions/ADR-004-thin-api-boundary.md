@@ -1,7 +1,11 @@
 # ADR-004: Thin API Boundary
 
 ## Status
-Accepted
+Superseded
+
+## Superseded by
+
+- [ADR-006: Framework Repository Responsibilities and Architectural Reconciliation](ADR-006-framework-repository-responsibilities.md)
 
 ## Context
 

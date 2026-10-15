@@ -18,7 +18,7 @@ Exit condition: the v0.1 documentation framework and its accepted contracts are 
 
 Implement the accepted v0.1 contracts in dependency order.
 
-1. **CLI Foundation — Framework Core v0.1:** implement reusable C# discovery, validation, template access, and initialization behavior with contract fixtures.
+1. **CLI Foundation — Framework Core v0.1:** implement reusable C# discovery and validation, versioned initialization template assets and deterministic selection, initialization preflight and planning, safe application, and structured results with contract fixtures.
 2. **CLI Foundation — CLI v0.1:** implement the user-facing command surface over verified Core behavior without duplicating contract logic.
 
 Phase 2 must not silently expand the accepted contracts. Newly discovered architectural gaps return to the documentation governance process before dependent implementation proceeds.

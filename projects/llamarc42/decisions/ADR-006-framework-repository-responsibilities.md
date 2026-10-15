@@ -1,32 +1,34 @@
 # ADR-006: Framework Repository Responsibilities and Architectural Reconciliation
 
 ## Status
-Proposed
+Accepted
 
-## Review authorization
+## Acceptance record
 
-The maintainer authorized preparation of this proposed reconciliation in [DOC-05 issue comment 6201160065](https://github.com/llamarc42/docs/issues/11#issuecomment-6201160065). That authorization explicitly did not accept this ADR or change any existing ADR status.
+The maintainer first authorized preparation of the proposed reconciliation in [DOC-05 issue comment 6201160065](https://github.com/llamarc42/docs/issues/11#issuecomment-6201160065). That authorization did not accept the ADR or change any existing ADR status.
+
+After reviewing the proposal and remediation findings, the maintainer accepted ADR-006 and authorized its coordinated amendment and supersession relationships in [DOC-05 issue comment 6202337469](https://github.com/llamarc42/docs/issues/11#issuecomment-6202337469).
 
 ## Context
 
 [ADR-005](ADR-005-agent-agnostic-documentation-framework-boundary.md) established llamarc42 as a documentation-first, local-first, agent-independent framework. Documentation Contract v0.1, the Standalone Initialization Contract v0.1, and the Deterministic Validation Contract v0.1 subsequently defined the initial documentation and tooling contracts.
 
-ADR-001 through ADR-004 still describe the earlier copilot architecture. The multi-repository separation and C# implementation choice remain useful, but the recorded repository names and responsibilities conflict with the accepted framework boundary. Session storage and a required API facade are outside the v0.1 framework. The accepted decisions require explicit reconciliation rather than incidental edits or erasure of their history.
+Before this reconciliation, ADR-001 through ADR-004 described the earlier copilot architecture. The multi-repository separation and C# implementation choice remained useful, but the recorded repository names and responsibilities conflicted with the accepted framework boundary. Session storage and a required API facade were outside the v0.1 framework. The decisions required explicit reconciliation rather than incidental edits or erasure of their history.
 
-## Proposed decision
+## Decision
 
 The current repositories have the following responsibilities:
 
 | Repository | v0.1 responsibility |
 | --- | --- |
 | `llamarc42/docs` | Owns authoritative framework documentation, accepted contracts, architectural decisions, current guidance, and preserved history. |
-| `llamarc42/core` | Implements reusable C# behavior for deterministic discovery, validation, template access, and initialization as governed by accepted documentation. |
-| `llamarc42/cli` | Provides the user-facing command invocation and presentation layer over Core behavior without duplicating that behavior. |
+| `llamarc42/core` | Owns the reusable C# implementation of accepted discovery and validation behavior, the single executable copy of versioned initialization template assets, deterministic template selection, initialization preflight and planning, safe application, and structured results and diagnostics. |
+| `llamarc42/cli` | Owns command invocation, argument handling, user interaction, and terminal and machine-readable presentation over Core behavior without duplicating template selection, initialization, discovery, validation, or authority-classification logic. |
 | `llamarc42/powershell` | Preserves the original prototype and reference material. It is not the v0.1 wrapper or an implementation dependency. |
 | `llamarc42/api` | Is deferred. It is not a v0.1 framework component or dependency. |
 | `llamarc42.con` | Remains an independent project. Any future integration is optional, deferred, and separately governed. |
 
-The documentation is normative. Core provides executable behavior for accepted contracts. The CLI is a presentation and invocation surface over Core. Repository existence does not by itself establish participation in the framework.
+The documentation contract determines which project-owned documents carry current authority. Core implements structural behavior defined by accepted contracts, while the CLI invokes and presents that behavior without redefining document authority. Repository existence does not by itself establish participation in the framework.
 
 This decision retains the multi-repository separation. It does not define multi-repository project membership, federation, remote discovery, or cross-repository governance. Those concerns remain outside v0.1 and require separately accepted authority.
 
@@ -39,16 +41,16 @@ This decision retains the multi-repository separation. It does not define multi-
 
 ADR-001 remains authoritative for separating concerns across repositories. Its repository identities and responsibilities are replaced only by the table and boundaries in this decision. The amendment does not make every existing repository a framework participant and does not introduce repository federation.
 
-ADR-002 remains authoritative for implementing shared Core behavior in C#. Core's responsibility is narrowed to deterministic discovery, validation, template access, and initialization governed by accepted documentation. Model interaction, retrieval, prompts, sessions, and API sharing are not Core responsibilities under v0.1. PowerShell is preserved as historical prototype and reference material, not as a required wrapper or bootstrap dependency.
+ADR-002 remains authoritative for implementing shared Core behavior in C#. Core's responsibility is narrowed to the reusable implementation of accepted discovery and validation behavior, versioned initialization template assets and their deterministic selection, initialization preflight and planning, safe application, and structured results and diagnostics. Core implements these accepted contracts; it does not establish or revise their normative meaning. Model interaction, retrieval, prompts, sessions, and API sharing are not Core responsibilities under v0.1. PowerShell is preserved as historical prototype and reference material, not as a required wrapper or bootstrap dependency.
 
 ## Supersedes
 
 - [ADR-003: Session Storage Model](ADR-003-sessions-storage-model.md)
 - [ADR-004: Thin API Boundary](ADR-004-thin-api-boundary.md)
 
-Upon acceptance, ADR-003 would be superseded because chat and session management are outside the accepted framework boundary. Its local-first and inspectability rationale would remain historical context, but its session model would not be a v0.1 requirement.
+ADR-003 is superseded because chat and session management are outside the accepted framework boundary. Its local-first and inspectability rationale remains historical context, but its session model is not a v0.1 requirement.
 
-Upon acceptance, ADR-004 would be superseded because an API is deferred and is not a framework dependency. Its separation-of-concerns rationale would remain historical context, but it would not require an API surface in v0.1.
+ADR-004 is superseded because an API is deferred and is not a framework dependency. Its separation-of-concerns rationale remains historical context, but it does not require an API surface in v0.1.
 
 ## Consequences
 

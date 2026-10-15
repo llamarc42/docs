@@ -19,7 +19,7 @@ The framework is inspired by arc42's emphasis on structured architectural commun
 
 ## Product boundary
 
-The documentation belongs to the project and remains authoritative independently of any developer, model, agent, service, or workflow that consumes it. The framework is local-first, human-readable, and model-independent.
+The documentation belongs to the project. Documentation Contract v0.1 determines which project-owned documents carry current authority, and that authority remains independent of any developer, model, agent, service, or workflow that consumes it. The framework is local-first, human-readable, and model-independent.
 
 The CLI and Core may initialize the foundational structure and validate accepted structural rules. People remain responsible for the substance, maintenance, review, and acceptance of project documentation.
 
@@ -40,5 +40,5 @@ The framework does not provide AI inference, conversations, sessions, retrieval 
 - [Architecture boundaries](architecture/boundaries.md)
 - [Constraints](constraints.md)
 - [ADR-005: Agent-Agnostic Documentation Framework Product Boundary](decisions/ADR-005-agent-agnostic-documentation-framework-boundary.md)
-- [Proposed ADR-006: Framework Repository Responsibilities and Architectural Reconciliation](decisions/ADR-006-framework-repository-responsibilities.md)
+- [ADR-006: Framework Repository Responsibilities and Architectural Reconciliation](decisions/ADR-006-framework-repository-responsibilities.md)
 - [Roadmap](quality/roadmap.md)
