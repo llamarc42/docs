@@ -23,6 +23,10 @@ Use multiple repositories:
 - llamarc42-powershell
 - llamarc42-api (optional)
 
+## Amended by
+
+- [ADR-006: Framework Repository Responsibilities and Architectural Reconciliation](ADR-006-framework-repository-responsibilities.md)
+
 ## Consequences
 
 ### Positive

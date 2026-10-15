@@ -1,37 +1,31 @@
 # Invariants
 
-These rules must always hold true.
+These rules must always hold for the llamarc42 framework.
 
-## Documentation
+## Documentation authority
 
-- Documentation is authoritative over conversation history
-- Global documents are always included
-- Project documents define project-specific truth
+- Project-owned documentation is authoritative only as classified by the accepted documentation contract.
+- Accepted specifications and ADRs remain explicit and reviewable.
+- Historical material remains discoverable but never becomes current authority because of proximity or tooling behavior.
+- Navigation helps discovery but does not create authority.
+- Transient conversations, summaries, generated output, and tool state do not override project documentation.
 
-## Sessions
+## Human and local operation
 
-- A session belongs to exactly one project
-- Sessions are append-only
-- Session history must be preserved
+- A conforming documentation set remains readable and maintainable without the framework's software.
+- Human-only use is a complete and supported mode.
+- Framework validity does not depend on a network, hosted service, model, agent, or source-control system.
 
-## Retrieval
+## Deterministic tooling
 
-- Retrieval policy defines what is in scope
-- The model must not infer missing project facts
-- If context is insufficient, the system must say so
+- Discovery, initialization, and validation outcomes follow accepted contracts and visible inputs.
+- Validation is read-only and does not infer substantive architectural meaning.
+- Missing, invalid, or inaccessible inputs produce explicit outcomes rather than guessed replacements.
+- Core and CLI behavior cannot silently expand documentation authority.
 
-## Behavior
+## Boundaries
 
-- The system must respect documented constraints and decisions
-- The system must prefer explicit tradeoffs over generic advice
-- The system must not override architectural intent
-
-## Consistency
-
-- All surfaces (CLI, UI, editor) must behave consistently
-- No surface may reinterpret documentation differently
-
-## Transparency
-
-- All inputs to the model must be inspectable
-- All outputs must be traceable to inputs
+- Documentation is normative; Core is the reusable executable interpretation of accepted structural contracts; the CLI is their user-facing invocation and presentation surface.
+- Optional tools and external workflows may assist but cannot become hidden dependencies or sources of authority.
+- Repository existence does not establish project membership.
+- Multi-repository federation is not a v0.1 invariant or capability.

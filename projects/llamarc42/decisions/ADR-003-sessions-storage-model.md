@@ -1,7 +1,11 @@
 # ADR-003: Session Storage Model
 
 ## Status
-Accepted
+Superseded
+
+## Superseded by
+
+- [ADR-006: Framework Repository Responsibilities and Architectural Reconciliation](ADR-006-framework-repository-responsibilities.md)
 
 ## Context
 
