@@ -388,7 +388,14 @@ and the organization profile now provide the necessary boundary without
 inventing repository-local contracts.
 
 Focused file changes were prepared in the owning repositories for findings
-AUD-002 through AUD-004. They remain review changes, not merged facts.
+AUD-002 through AUD-004:
+
+- [organization profile PR #1](https://github.com/llamarc42/.github/pull/1);
+- [CLI PR #25](https://github.com/llamarc42/cli/pull/25); and
+- [PowerShell PR #24](https://github.com/llamarc42/powershell/pull/24).
+
+They remain review changes, not merged facts. This audit record itself is under
+review in [docs PR #27](https://github.com/llamarc42/docs/pull/27).
 
 ## 9. Historical preservation assessment
 
