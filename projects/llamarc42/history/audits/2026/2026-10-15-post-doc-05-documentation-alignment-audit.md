@@ -498,3 +498,60 @@ non-authoritative. They are not prerequisites for standalone v0.1 Core work.
 8. **Is the foundation ready for Phase 2?** **Ready with nonblocking
    follow-ups.** Begin only the approved Core sequence; do not begin CLI
    implementation before CLI-01 and applicable Core dependencies are complete.
+
+## Appendix A — Audited documentation inventory
+
+The exact repository documentation and governance artifacts inspected were:
+
+### `llamarc42/docs`
+
+- `README.md`
+- `global/constitution.md`
+- `global/glossary.md`
+- `global/principles.md`
+- `projects/llamarc42/project.md`
+- `projects/llamarc42/context.md`
+- `projects/llamarc42/constraints.md`
+- `projects/llamarc42/architecture/boundaries.md`
+- `projects/llamarc42/architecture/overview.md`
+- `projects/llamarc42/domain/invariants.md`
+- `projects/llamarc42/quality/risks.md`
+- `projects/llamarc42/quality/roadmap.md`
+- `projects/llamarc42/quality/tradeoffs.md`
+- `projects/llamarc42/decisions/ADR-001-repo-topology.md`
+- `projects/llamarc42/decisions/ADR-002-core-implementation-language.md`
+- `projects/llamarc42/decisions/ADR-003-sessions-storage-model.md`
+- `projects/llamarc42/decisions/ADR-004-thin-api-boundary.md`
+- `projects/llamarc42/decisions/ADR-005-agent-agnostic-documentation-framework-boundary.md`
+- `projects/llamarc42/decisions/ADR-006-framework-repository-responsibilities.md`
+- `projects/llamarc42/specifications/documentation-contract-v0.1.md`
+- `projects/llamarc42/specifications/standalone-initialization-contract-v0.1.md`
+- `projects/llamarc42/specifications/deterministic-validation-contract-v0.1.md`
+- `projects/llamarc42/history/experiments/2026/2026-10-13-bat-spec-kit.md`
+- `projects/llamarc42/history/proposals/2026/2026-10-13-governance-improvement-program-v0.1.md`
+- `projects/llamarc42/history/proposals/2026/2026-10-13-standalone-initialization-contract-v0.1.md`
+- `projects/llamarc42/history/proposals/2026/2026-10-14-deterministic-validation-contract-v0.1.md`
+- `projects/llamarc42/history/proposals/2026/2026-10-14-docroot-reporoot-governance-for-v0.2.md`
+- `tooling/config/retrieval.yml`
+
+### Other repositories
+
+- `llamarc42/core`: `README.md`
+- `llamarc42/cli`: `README.md`, `cli-spec.md`
+- `llamarc42/powershell`: `README.md`, plus the tracked module/test tree as
+  implementation-history inventory
+- `llamarc42/api`: `README.md`
+- `llamarc42.con`: `README.md`, `CONTRIBUTING.md`, `AGENTS.md`,
+  `extensions/cli/AGENTS.md`, `docs/design/ci-audit-2026-09-22.md`,
+  `docs/design/pr-validation-and-review.md`, and
+  `docs/design/tool-contract-v1.md`
+- `llamarc42/.github`: `profile/README.md`
+
+### GitHub resources
+
+- Organization description and all seven repository descriptions.
+- Llamarc42 Board short description, README, fields, and relevant items.
+- DOC-01 through DOC-08 and VAL-01 through VAL-03 where present.
+- CORE-01 through CORE-04 and CLI-01 through CLI-05.
+- Relevant docs, Core, CLI, PowerShell, API, and `llamarc42.con` open PR state.
+- Docs, Core, and CLI milestone definitions and lifecycle state.
